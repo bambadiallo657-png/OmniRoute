@@ -943,32 +943,26 @@ CLI `base_url + /responses` ला WebSocket मध्ये upgrade करत�
 
 ---
 
-## कोटा आणि समस्यांचे अहवाल
+## कोटा आणि समस्या अहवाल
 
-| पद्धत | पथ                  | वर्णन                                                                                     |
-| ----- | ------------------- | ----------------------------------------------------------------------------------------- |
-| GET   | `/v1/quotas/check`  | नोंदणीकृत की जारी करण्यापूर्वी `provider` + `accountId` साठी कोटा पूर्व-प्रमाणित करा      |
-| POST  | `/v1/issues/report` | GitHub वर कोटा/की जारी करण्यातील अपयशाचा अहवाल द्या (`GITHUB_ISSUES_REPO` + token आवश्यक) |
+| पद्धत | मार्ग               | वर्णन                                                                                                  |
+| ----- | ------------------- | ------------------------------------------------------------------------------------------------------ |
+| GET   | `/v1/quotas/check`  | नोंदणीकृत की जारी करण्यापूर्वी `provider` + `accountId` साठी पूर्व-प्रमाणित कोटा                       |
+| POST  | `/v1/issues/report` | quota/key जारी करण्यात अयशस्वी झाल्याची GitHub ला तक्रार करा ( `GITHUB_ISSUES_REPO` + टोकन आवश्यक आहे) |
 
-**प्रमाणीकरण:** Bearer API key (`isAuthenticated`).
+**प्रमाण:** `/v1/quotas/check` बेअरर API की (`isAuthenticated`) घेते. `/v1/issues/report` हे केवळ व्यवस्थापनासाठी आहे (`requireManagementAuth`), जसे की `/api/v1/registered-keys`: डॅशबोर्ड सत्र, स्थानिक CLI टोकन किंवा `manage`/`admin` स्कोप असलेली API की; फक्त अनुमान API की `403` मिळवतात.
 
-### कोटा सत्र पुनर्प्राप्ती (ऐच्छिक)
+### कोटा सत्र पुनर्प्राप्ती (निवड करा)
 
-टर्मिनल कोटा त्रुटीमुळे (`402`/`429`/`503`, ज्याच्या body मध्ये कोटा किंवा credits संपल्याचे नमूद असते) अयशस्वी झालेली non-streaming `POST /v1/chat/completions` किंवा `POST /v1/responses` विनंती त्रुटी परत करण्याऐवजी नंतर replay करण्यासाठी ठेवता येते. कॉलर प्रत्येक विनंतीसाठी खालील तीन headers सह ही सुविधा स्वीकारतो:
+टर्मिनल कोटा त्रुटीसह अयशस्वी होणारे गैर-स्ट्रीमिंग `POST /v1/chat/completions` किंवा `POST /v1/responses` (`402`/`429`/`503` ज्यांचे मुख्य भाग कोटा किंवा क्रेडिट्स संपले आहेत असे म्हणतात) त्रुटी परत करण्याऐवजी नंतर पार्क केले जाऊ शकते आणि पुन्हा प्ले केले जाऊ शकते. कॉलर प्रत्येक विनंतीनुसार तीन शीर्षलेखांसह निवड करतो:
 
-| Header                       | Value                                     |
-| ---------------------------- | ----------------------------------------- |
-| `x-omniroute-quota-recovery` | `auto`                                    |
-| `x-omniroute-session`        | session id, `[A-Za-z0-9._:-]{1,128}`      |
-| `x-omniroute-recovery-turn`  | सत्रात अद्वितीय असलेला turn id (तोच नियम) |
+| शीर्षलेख                     | मूल्य                                    |
+| ---------------------------- | ---------------------------------------- |
+| `x-omniroute-quota-recovery` | `auto`                                   |
+| `x-omniroute-session`        | सत्र आयडी, `[A-Za-z0-9._:-]{1,128}`      |
+| `x-omniroute-recovery-turn`  | सत्रामध्ये आयडी अद्वितीय करा (समान नियम) |
 
-फक्त `stream: false` असलेले turns, ज्यात tools, tool history किंवा `previous_response_id` नाही आणि
-`x-omniroute-connection` pin नाही, पात्र ठरतात. तसेच `STORAGE_ENCRYPTION_KEY` सेट केलेले असणे आवश्यक आहे
-(विनंती 24 तासांपर्यंत encrypted स्वरूपात साठवली जाते). त्यानंतर प्रतिसाद `202` आणि
-`recovery.poll` असा असतो; `GET /v1/quota-recoveries/{id}` वर poll करा (`pending` असताना `202`, पूर्ण झाल्यावर
-recovered body सह `200`) किंवा `DELETE` वापरून रद्द करा. Tickets फक्त ते तयार करणाऱ्या API key लाच दिसतात. ज्याचा
-निकाल अनिश्चित आहे असा replay दोनदा पाठवण्याऐवजी `needs_confirmation` स्थितीत संपतो. स्रोत:
-`src/lib/quota/quotaSessionRecovery.ts`.
+फक्त `stream: false` वळणे, टूल इतिहास किंवा `previous_response_id` शिवाय, आणि `x-omniroute-connection` पिन नाही, पात्र आहेत आणि `STORAGE_ENCRYPTION_KEY` सेट करणे आवश्यक आहे (विनंती 24 तासांपर्यंत कूटबद्धपणे संग्रहित केली जाते). प्रतिसाद नंतर `recovery.poll` सह `202` आहे; मतदान `GET /v1/quota-recoveries/{id}` ( प्रलंबित असताना`202`, पूर्ण झाल्यावर पुनर्प्राप्त केलेल्या शरीरासह `200` ) किंवा `DELETE` सह रद्द करा. तिकिटे केवळ API की ज्याने ती तयार केली त्यांना दृश्यमान आहेत. रिप्ले ज्याचा निकाल अनिश्चित आहे तो दोनदा पाठवण्याऐवजी `needs_confirmation` मध्ये संपतो. स्रोत: `src/lib/quota/quotaSessionRecovery.ts`.
 
 ---
 
@@ -1708,19 +1702,23 @@ OmniRoute इव्हेंट्ससाठी आउटबाउंड व�
 
 ---
 
-## नोंदणीकृत कीज (स्वयंचलित व्यवस्थापन)
+## नोंदणीकृत की (स्वयं-व्यवस्थापन)
 
-बॅकिंग प्रदाता/खात्याविरुद्ध API की जारी करण्यासाठी आणि फिरवण्यासाठी, तसेच दैनिक/तासिक कोट्यांसह, स्वयंचलित-की व्यवस्थापन उपप्रणालीद्वारे वापरले जाते.
+स्वयं-की व्यवस्थापन उपप्रणालीद्वारे daily/hourly कोटासह, बॅकिंग provider/account विरुद्ध API की जारी करण्यासाठी आणि फिरवण्यासाठी वापरले जाते.
 
-| पद्धत  | मार्ग                                 | वर्णन                                                                                                                                                                                             |
-| ------ | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/api/v1/registered-keys`             | नोंदणीकृत कीजची यादी (फक्त मास्क केलेला प्रिफिक्स)                                                                                                                                                |
-| POST   | `/api/v1/registered-keys`             | नवीन नोंदणीकृत की जारी करा — बॉडी: `{name, provider?, accountId?, idempotencyKey?, expiresAt?, dailyBudget?, hourlyBudget?}`. रॉ की **एकदाच** परत केली जाते. कोटा नाकारल्यास `429` परत केले जाते. |
-| GET    | `/api/v1/registered-keys/[id]`        | नोंदणीकृत कीचा मेटाडेटा मिळवा (रॉ मटेरियल नाही)                                                                                                                                                   |
-| DELETE | `/api/v1/registered-keys/[id]`        | नोंदणीकृत की रद्द करा                                                                                                                                                                             |
-| POST   | `/api/v1/registered-keys/[id]/revoke` | स्पष्ट रद्दीकरण एंडपॉइंट (`DELETE` प्रमाणेच परिणाम)                                                                                                                                               |
+| पद्धत  | मार्ग                                 | वर्णन                                                                                                                                                                                       |
+| ------ | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/v1/registered-keys`             | नोंदणीकृत की सूचीबद्ध करा (केवळ मुखवटा घातलेला उपसर्ग)                                                                                                                                      |
+| POST   | `/api/v1/registered-keys`             | नवीन नोंदणीकृत की — बॉडी जारी करा: `{name, provider?, accountId?, idempotencyKey?, expiresAt?, dailyBudget?, hourlyBudget?}`. कच्ची की परत करते** एकदा** . कोटा नाकारल्यावर `429` परत करते. |
+| GET    | `/api/v1/registered-keys/[id]`        | नोंदणीकृत कीचा मेटाडेटा पुनर्प्राप्त करा (कच्चा माल नाही)                                                                                                                                   |
+| DELETE | `/api/v1/registered-keys/[id]`        | नोंदणीकृत की रद्द करा                                                                                                                                                                       |
+| POST   | `/api/v1/registered-keys/[id]/revoke` | स्पष्टपणे रद्द करा एंडपॉइंट ( DELETE सारखाच प्रभाव)                                                                                                                                         |
+| GET    | `/api/v1/providers/[provider]/limits` | प्रदात्याच्या जारी कॅप्स वाचा                                                                                                                                                               |
+| PUT    | `/api/v1/providers/[provider]/limits` | प्रदात्याच्या जारी कॅप्स — बॉडी सेट करा: `{maxActiveKeys?, dailyIssueLimit?, hourlyIssueLimit?}`                                                                                            |
+| GET    | `/api/v1/accounts/[id]/limits`        | खात्याच्या जारी कॅप्स वाचा                                                                                                                                                                  |
+| PUT    | `/api/v1/accounts/[id]/limits`        | प्रदाता मार्गाप्रमाणेच खात्याच्या जारी कॅप्स — बॉडी सेट करा                                                                                                                                 |
 
-**प्रमाणीकरण:** व्यवस्थापन सत्र/API की (`requireManagementAuth`) — `/api/keys` सारखाच गार्ड: डॅशबोर्ड सत्र, स्थानिक CLI टोकन किंवा `manage`/`admin` स्कोप असलेली API की; केवळ-अनुमान API कींना `403` मिळतो. `/v1/quotas/check` आणि `/v1/issues/report` हे देखील पहा.
+**प्रमाण:** व्यवस्थापन session/API की (`requireManagementAuth`) — `/api/keys` गार्ड : डॅशबोर्ड सत्र, स्थानिक CLI टोकन किंवा `manage`/`admin` स्कोप असलेली API की; फक्त अनुमान API की `403` मिळवतात. `/v1/quotas/check` आणि `/v1/issues/report` देखील पहा.
 
 ---
 
@@ -1844,23 +1842,23 @@ curl -X DELETE http://localhost:20128/api/resilience/model-cooldowns \
 
 ## MCP सर्व्हर
 
-OmniRoute मध्ये 3 transports (stdio, SSE, streamable-http) आणि scoped tools असलेला अंतर्भूत Model Context Protocol सर्व्हर आहे. खालील dashboard endpoints स्थिती/audit डेटा वाचतात आणि HTTP transports साठी proxy म्हणून कार्य करतात.
+OmniRoute 3 ट्रान्सपोर्ट्स (stdio, SSE, streamable-http) आणि स्कोप्ड टूल्ससह एम्बेडेड मॉडेल कॉन्टेक्स्ट प्रोटोकॉल सर्व्हर पाठवते. खालील डॅशबोर्ड एंडपॉइंट्स status/audit डेटा वाचतात आणि HTTP ट्रान्सपोर्ट्स प्रॉक्सी करतात.
 
-| पद्धत  | मार्ग                  | वर्णन                                                                                                  | -------------------- |
-| ------ | ---------------------- | ------------------------------------------------------------------------------------------------------ | -------------------- |
-| GET    | `/api/mcp/status`      | Heartbeat, transport, online स्थिती, शेवटचा call, प्रमुख tools, 24 तासांचा यश दर                       |
-| GET    | `/api/mcp/tools`       | `name`, `description`, `scopes`, `phase`, `auditLevel`, `sourceEndpoints` असलेल्या MCP tools ची सूची   |
-| GET    | `/api/mcp/sse`         | SSE transport साठी SSE stream उघडा (MCP अक्षम असल्यास किंवा transport mismatch असल्यास `503` परत करते) |
-| POST   | `/api/mcp/sse`         | SSE transport वर JSON-RPC frame पाठवा                                                                  |
-| GET    | `/api/mcp/stream`      | Streamable HTTP transport ची SSE बाजू उघडा (सर्व्हरने सुरू केलेले messages)                            |
-| POST   | `/api/mcp/stream`      | Streamable HTTP transport वर JSON-RPC frame पाठवा                                                      |
-| DELETE | `/api/mcp/stream`      | Streamable HTTP session समाप्त करा                                                                     |
-| GET    | `/api/mcp/audit`       | audit log वर क्वेरी करा — `?limit=`, `?offset=`, `?tool=`, `?success=true                              | false`, `?apiKeyId=` |
-| GET    | `/api/mcp/audit/stats` | एकत्रित audit आकडेवारी (एकूण संख्या, यश दर, सरासरी कालावधी, प्रमुख tools)                              |
+| पद्धत | मार्ग | वर्णन |
+| ------ | ---------------------- | ------------------------------------------------------------------------------------------------ | -------------------- |
+| GET | `/api/mcp/status` | हृदयाचे ठोके, वाहतूक, ऑनलाइन स्थिती, शेवटचा कॉल, शीर्ष साधने, 24 तास यश दर |
+| GET | `/api/mcp/tools` | List of MCP tools with `name`, `description`, `scopes`, `phase`, `auditLevel`, `sourceEndpoints` |
+| GET | `/api/mcp/sse` | SSE वाहतुकीसाठी उघडा SSE प्रवाह ( MCP अक्षम असल्यास किंवा वाहतूक जुळत नसल्यास `503` परत करते) |
+| POST | `/api/mcp/sse` | SSE वाहतुकीवर JSON-RPC फ्रेम पाठवा |
+| GET | `/api/mcp/stream` | स्ट्रीम करण्यायोग्य HTTP ट्रान्सपोर्टची SSE बाजू उघडा (सर्व्हर-इनिशिएटेड मेसेज) |
+| POST | `/api/mcp/stream` | प्रवाहित करण्यायोग्य HTTP वाहतुकीवर JSON-RPC फ्रेम पाठवा |
+| DELETE | `/api/mcp/stream` | स्ट्रीम करण्यायोग्य HTTP सत्र समाप्त करा |
+| GET | `/api/mcp/audit` | क्वेरी ऑडिट लॉग — `?limit=`, `?offset=`, `?tool=`, `?success=true                                | false`, `?apiKeyId=` |
+| GET | `/api/mcp/audit/stats` | एकूण ऑडिट आकडेवारी (एकूण, यश दर, सरासरी कालावधी, शीर्ष साधने) |
 
-**प्रमाणीकरण:** `sse`/`stream` transports MCP-विशिष्ट authentication surface ( `mcp` scope असलेली Bearer API key) चे पालन करतात; `status`/`tools`/`audit*` routes dashboard मधून वाचता येतात (dashboard host पर्यंत पोहोचण्यापलीकडे अतिरिक्त प्रमाणीकरण आवश्यक नाही).
+**प्रमाण:** `sse`/`stream` ट्रान्सपोर्ट्स MCP-विशिष्ट प्रमाणीकरण पृष्ठभागाचा सन्मान करतात ( `mcp` स्कोपसह Bearer API की); `status`/`tools`/`audit*` मार्ग डॅशबोर्डवरून वाचनीय आहेत (डॅशबोर्ड होस्टपर्यंत पोहोचण्यापलीकडे कोणत्याही अतिरिक्त प्रमाणीकरणाची आवश्यकता नाही).
 
-> दोन्ही HTTP transports `settings.mcpEnabled` आणि `settings.mcpTransport` द्वारे नियंत्रित आहेत — transport mismatch असल्यास `400`, तर MCP अक्षम असल्यास `503` परत करते.
+> दोन्ही HTTP वाहतूक `settings.mcpEnabled` आणि `settings.mcpTransport` — द्वारे गेट केली जाते, ट्रान्सपोर्ट न जुळल्यास `400` परत येतो, एक MCP अक्षम राज्य `503` परत करतो.
 
 ---
 

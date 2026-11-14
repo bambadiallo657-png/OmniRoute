@@ -39,34 +39,34 @@ Stiúideo trí chluaisín a aontaíonn cuardach gréasáin, scríobadh gréasái
 
 ### Cluaisín Cuardaigh
 
-Forbraíonn sé an `SearchForm` + `ResultsPanel` + `RerankPanel` atá ann cheana ina chluaisín:
+Forbraíonn sé an `SearchForm` + `ResultsPanel` + `RerankPanel` reatha ina chluaisín:
 
-- Iarratas → torthaí (teideal, URL, blúire, scór ábharthachta).
+- Ceist torthaí → (teideal, URL, blúire, scór ábharthachta).
 - Meiteashonraí an tsoláthraí sa phána Cumraíochta (costas, cuóta, stádas).
-- Rannán athrangaithe: roghnaigh samhail athrangaithe, athordaigh na torthaí, taispeáin `positionDelta`.
-- Staid fholamh le CTA nuair nach bhfuil aon soláthraí cuardaigh cumraithe.
-- Stair chuardaigh trí `SearchHistory.tsx`.
-- Glaonn sé ar `POST /v1/search` (críochphointe atá ann cheana, gan aon athruithe).
+- Alt Athrangaigh: roghnaigh samhail athrank, athordaigh na torthaí, taispeáin `positionDelta`.
+- Staid fholamh le CTA nuair nach bhfuil aon soláthraithe cuardaigh cumraithe.
+- Cuardaigh stair trí `SearchHistory.tsx`.
+- Glaonna `POST /v1/search` (deireadhphointe reatha, gan aon athruithe).
 
-### Cluaisín Scrapála
+### Scrape Cluaisín
 
 Cluaisín nua chun ábhar a bhaint as URL trí `POST /v1/web/fetch` (cruthaithe i bplean 05):
 
-- Ionchur: URL + scorán lánleathanaigh + roghnóir formáide (markdown / téacs / HTML).
-- Seol → faigh → rindreáil `ScrapeResult.tsx`.
-- Rindreálann `ScrapeResult` réamhamharc markdown + scorán amhábhair.
-- Teorainn: más mó corp an fhreagra ná **256 KB**, taispeánann an Chomhéadain `(teasctha, féach ar an amhábhar)` agus osclaíonn sí an t-amhábhar i módaldialóg Monaco (D21).
-- Painéal meiteashonraí: soláthraí (firecrawl/jina-reader/tavily-search/tinyfish/nimble-search/anysearch-search/parallel-search), aga folaigh, costas, méid an fhreagra, líon na nasc.
-- Úsáideann sé an crúca `useScrapeFetch.ts`.
+- Ionchur: URL + lán-leathanach scoránaigh roghnóir formáid + (markdown / text / HTML).
+- Cuir isteach → beir → rindreáil `ScrapeResult.tsx`.
+- `ScrapeResult` rindreáil marcáil réamhamharc + amh scoránaigh.
+- caipín: más comhlacht freagra >** 256 KB** , léiríonn UI `(truncated, view raw)` agus osclaíonn sé amh i modal Monacó (D21).
+- Painéal meiteashonraí: soláthraí (firecrawl/jina-reader/tavily-search/tinyfish/nimble-search/anysearch-search/parallel-search), latency, costas, méid freagartha, comhaireamh naisc.
+- Úsáideann `useScrapeFetch.ts` hook.
 
-### Cluaisín Comparáide
+### Déan comparáid idir Cluaisín
 
-Ritheann sé an t-iarratas/URL céanna thar suas le **4 sholáthraí go comhthreomhar** (D22):
+Ritheann an query/URL céanna trasna suas go dtí** 4 sholáthraí ag an am céanna** (D22):
 
-- Colúin taobh le taobh do gach soláthraí.
-- Méadrachtaí: aga folaigh, costas, líon na dtorthaí, méid an fhreagra.
-- Ríomh forluí URLanna don chuardach (líon na URLanna comhroinnte i gcomparáid leis an toradh tosaigh).
-- Glaonn sé ar `POST /v1/search` (cuardach) nó `POST /v1/web/fetch` (scrapáil) do gach soláthraí.
+- Colúin taobh le taobh in aghaidh an tsoláthraí.
+- Méadracht: latency, costas, comhaireamh torthaí, méid freagartha.
+- ríomh forluí URL don chuardach (líon na URLs roinnte vs an toradh tosaigh).
+- Glaonna `POST /v1/search` (cuardach) nó `POST /v1/web/fetch` (scrape) in aghaidh an tsoláthraí.
 
 ---
 
@@ -99,15 +99,15 @@ Ritheann sé an t-iarratas/URL céanna thar suas le **4 sholáthraí go comhthre
 
 ---
 
-## Catalóg Soláthraithe
+## Catalóg Soláthraí
 
-Nochtann `ProviderCatalog.tsx` liosta iomlán na soláthraithe ó `GET /api/search/providers`
-(leathnaithe in F4 chun soláthraithe aisghabhála a chur san áireamh):
+nochtar `ProviderCatalog.tsx` liosta iomlán na soláthróirí ó `GET /api/search/providers` (sínte i F4 chun soláthraithe beir a áireamh):
 
-| `kind` | `"search"` (20 soláthraí) nó `"fetch"` (firecrawl, jina-reader, tavily-search, tinyfish, nimble-search, anysearch-search, parallel-search) |
+| `kind` | `"search"` (23 soláthraí) nó `"fetch"` (crawl dóiteáin, léitheoir jina, cuardach tavily, iasc beag bídeach, cuardach nimble, aon chuardach-cuardach, cuardach comhthreomhar) |
 
-Déantar an stádas a **dhíorthú tráth na hiarrata** trí sheiceáil an bhfuil dintiúir ann agus an bhfuil
-na heochracha uile i dtréimhse shuaimhnithe faoi láthair.
+Tá an stádas** díorthaithe ag am iarratais** trí sheiceáil cibé an bhfuil dintiúir ann agus an bhfuil na heochracha go léir faoi chuimsiú faoi láthair.
+
+Níl aon eochair dá chuid féin ag `codex-search` (Codex Web Search): déanann sé cuntas Codex (ChatGPT) ceangailte a athúsáid, mar sin caitheann gach cuardach cuóta síntiúis ChatGPT agus tógann sé thart ar 10-40 s. Ritheann sé nuair a ainmníonn iarratas é; Teastaíonn bratach na gné `CODEX_SEARCH_AUTO_FALLBACK_ENABLED` le roghnú uathoibríoch (amach de réir réamhshocraithe).
 
 ---
 

@@ -33,38 +33,38 @@ Search Tools Studio `/dashboard/search-tools` səhifəsini sadə axtarış sına
 
 ---
 
-## Tablar
+## Nişanlar
 
-### Axtarış Tabı
+### Axtarış Tab
 
-Mövcud `SearchForm` + `ResultsPanel` + `RerankPanel` komponentlərini taba çevirir:
+Mövcud `SearchForm` + `ResultsPanel` + `RerankPanel` -ni nişana çevirir:
 
-- Sorğu → nəticələr (başlıq, URL, fraqment, uyğunluq xalı).
-- Config panelində provayder metadatası (xərc, kvota, status).
-- Yenidən sıralama bölməsi: yenidən sıralama modeli seçin, nəticələri yenidən sıralayın, `positionDelta` dəyərini göstərin.
+- Sorğu → nəticələri (başlıq, URL, parça, uyğunluq hesabı).
+- Konfiqurasiya panelində provayder metadatası (qiymət, kvota, status).
+- Yenidən sıralama bölməsi: yenidən sıralama modeli seçin, nəticələri yenidən sıralayın, `positionDelta` göstərin.
 - Heç bir axtarış provayderi konfiqurasiya edilmədikdə CTA ilə boş vəziyyət.
 - `SearchHistory.tsx` vasitəsilə axtarış tarixçəsi.
-- `POST /v1/search` çağırır (mövcud endpoint, dəyişiklik yoxdur).
+- `POST /v1/search` çağırır (mövcud son nöqtə, dəyişiklik yoxdur).
 
-### Məzmun Çıxarma Tabı
+### Scrape Tab
 
-`POST /v1/web/fetch` vasitəsilə URL-dən məzmun çıxarmaq üçün yeni tab (plan 05-də yaradılıb):
+`POST /v1/web/fetch` vasitəsilə URL dan məzmun çıxarmaq üçün yeni tab (plan 05-də yaradılmışdır):
 
-- Giriş: URL + tam səhifə keçidi + format seçicisi (markdown / mətn / HTML).
-- Göndər → əldə et → `ScrapeResult.tsx` komponentində göstər.
-- `ScrapeResult` markdown önizləməsini və xam görünüş keçidini göstərir.
-- Məhdudiyyət: cavab gövdəsi **256 KB**-dan böyükdürsə, UI `(qısaldılıb, xam versiyaya baxın)` göstərir və xam məzmunu Monaco modal pəncərəsində açır (D21).
-- Metadata paneli: provayder (firecrawl/jina-reader/tavily-search/tinyfish/nimble-search/anysearch-search/parallel-search), gecikmə, xərc, cavab ölçüsü, keçid sayı.
-- `useScrapeFetch.ts` hook-undan istifadə edir.
+- Daxiletmə: URL + tam səhifəli keçid + format seçicisi (markdown / text / HTML).
+- → gətir → render `ScrapeResult.tsx` göndərin.
+- `ScrapeResult` markdown preview + raw keçidini göstərir.
+- Cap: cavab bədən > əgər** 256 KB** , UI `(truncated, view raw)` göstərir və Monako modalında xam (D21) açır.
+- Metadata paneli: provayder (firecrawl/jina-reader/tavily-search/tinyfish/nimble-search/anysearch-search/parallel-search), gecikmə, qiymət, cavab ölçüsü, keçidlərin sayı.
+- `useScrapeFetch.ts` çəngəlindən istifadə edir.
 
-### Müqayisə Tabı
+### Nişanı müqayisə edin
 
-Eyni sorğunu/URL-i paralel olaraq maksimum **4 provayder** üzrə icra edir (D22):
+qədər eyni query/URL çalışır** Paralel olaraq 4 provayder** (D22):
 
-- Hər provayder üçün yanaşı sütunlar.
-- Metrikalar: gecikmə, xərc, nəticə sayı, cavab ölçüsü.
-- Axtarış üçün URL üst-üstə düşməsinin hesablanması (ortaq URL-lərin ilkin nəticəyə nisbətdə sayı).
-- Hər provayder üçün `POST /v1/search` (axtarış) və ya `POST /v1/web/fetch` (məzmun çıxarma) çağırır.
+- Provayder üçün yan-yana sütunlar.
+- Metriklər: gecikmə, xərc, nəticə sayı, cavab ölçüsü.
+- axtarış üçün URL üst-üstə düşmə hesablaması (paylaşılan URLs sayı və ilkin nəticə).
+- Provayderə görə `POST /v1/search` (axtarış) və ya `POST /v1/web/fetch` (scrape) çağırır.
 
 ---
 
@@ -97,15 +97,15 @@ Eyni sorğunu/URL-i paralel olaraq maksimum **4 provayder** üzrə icra edir (D2
 
 ---
 
-## Provayder Kataloqu
+## Provayder kataloqu
 
-`ProviderCatalog.tsx`, `GET /api/search/providers` vasitəsilə tam provayder siyahısını təqdim edir
-(F4-də fetch provayderlərini daxil etmək üçün genişləndirilib):
+`ProviderCatalog.tsx` `GET /api/search/providers` -dən tam provayder siyahısını təqdim edir (gəlmə təminatçılarını daxil etmək üçün F4-də genişləndirilib):
 
-| `kind` | `"search"` (20 provayder) və ya `"fetch"` (firecrawl, jina-reader, tavily-search, tinyfish, nimble-search, anysearch-search, parallel-search) |
+| `kind` | `"search"` (23 provayder) və ya `"fetch"` (firecrawl, jina-reader, tavily-search, tinyfish, çevik axtarış, anysearch-search, parallel-search) |
 
-Status sorğu zamanı etimadnamələrin mövcud olub-olmadığı və bütün
-açarların hazırda gözləmə müddətində olub-olmadığı yoxlanılaraq **müəyyən edilir**.
+Vəziyyət belədir** sorğu zamanı əldə edilir** etimadnamələrin olub-olmadığını və bütün açarların hazırda soyuma müddətində olub olmadığını yoxlayaraq.
+
+`codex-search` (Codex Web Search ) öz açarı yoxdur: o, bağlı Codex (ChatGPT) hesabını təkrar istifadə edir, ona görə də hər axtarış ChatGPT abunə kvotası sərf edir və təxminən 10-40 s çəkir. Sorğu onu adlandırdıqda işləyir; avtomatik seçim üçün `CODEX_SEARCH_AUTO_FALLBACK_ENABLED` xüsusiyyət bayrağı lazımdır (defolt olaraq söndürülür).
 
 ---
 

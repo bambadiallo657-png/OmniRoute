@@ -65,7 +65,7 @@ GLM 5.3 基本模型和`glm-5.3-{low,high,max}`具有显式`supportsVision:false
 
 默认**真的**。 `composeVisionPrompt()` (`visionBridgeHelpers.ts`) 附加文本**最后一条用户消息**（截断为 500 个字符）到基本描述提示，将描述转向用户实际询问的内容（codex-vision-proxy 模式）并要求视觉模型转录可见文本。当关闭—标志或没有用户文本—时，基本提示符将保持不变。
 
-对于每个caller/provider，描述自循环自己的 OpenAI 兼容请求（`callVisionModelSingle()` in `visionBridgeHelpers.ts`）始终无条件请求`image_url.detail: "high"` — ，而不是在任何客户端信号上门控。低细节采样会降低该提示所要求的文本转录任务的OCR准确性，因此无论原始入站请求使用什么细节级别，描述调用本身始终要求高细节。这只影响内部描述请求体；它不会更改OmniRoute在主请求—上转发调用者自己的`image_url.detail`方式，默认值单独应用，并且仅适用于`defaultImageDetail()` (`open-sse/handlers/chatCore/upstreamBody.ts`) 中检测到的OpenCode客户端。描述自循环的Anthropic有线格式分支没有`detail`字段，并且不受任一默认值的影响。
+对于每个caller/provider，描述自循环自己的 OpenAI 兼容请求（`callVisionModelSingle()` in `visionBridgeHelpers.ts`）始终无条件请求`image_url.detail: "high"` — ，而不是在任何客户端信号上门控。低细节采样会降低该提示所要求的文本转录任务的OCR准确性，因此无论原始入站请求使用什么细节级别，描述调用本身始终要求高细节。这只影响内部描述请求体；它不会改变OmniRoute在主请求—上转发调用者自己的`image_url.detail`方式，默认值单独应用，并且仅适用于`defaultImageDetail()` (`open-sse/handlers/chatCore/upstreamBody.ts`) 中检测到的OpenCode客户端。描述自循环的Anthropic有线格式分支没有`detail`字段，并且不受任一默认值的影响。
 
 #### 描述输出上限（`modalityBridgeVisionMaxChars`）
 
@@ -87,7 +87,7 @@ GLM 5.3 基本模型和`glm-5.3-{low,high,max}`具有显式`supportsVision:false
 
 #### 远程图像归一化（自循环describe/base64获取）
 
-当桥获取一个**偏僻的**图像本身— Anthropic描述自调用和 claude-wire-format Base64 转换 (`ensureBase64ImagesForClaudeWire`)，两者均通过`visionBridgeHelpers.ts` —中的`fetchRemoteImageAsDataUri()`生成的数据URI在嵌入视觉模型请求之前通过`normalizeDataUri()` (`open-sse/utils/imageNormalize.ts`) 传递。超大图像被缩小到**2048px 长边**（匹配调整大小上限OpenAI/Anthropic已经应用于服务器端），这会在不改变视觉模型所看到的内容的情况下削减上传bytes/latency 。调整大小使用`sharp`，通过动态导入加载：在其本机二进制文件无法加载的平台上， `normalizeDataUri()`**从不抛出**—它会回退到原始字节的直通，因此describe/base64-conversion路径始终保持工作。非图像字节（未返回可解码图像的提取）也会原封不动地传递。这种标准化的范围仅限于桥接器为其自己的自调用—获取的图像，它永远不会应用于调用者的原始直通有效负载，这与仅选择加入突变原则（硬规则#20）一致。
+当桥获取一个**偏僻的**图像本身— Anthropic描述自调用和 claude-wire-format base64 转换 (`ensureBase64ImagesForClaudeWire`)，两者均通过`visionBridgeHelpers.ts` —中的`fetchRemoteImageAsDataUri()`生成的数据URI在嵌入视觉模型请求之前通过`normalizeDataUri()` (`open-sse/utils/imageNormalize.ts`) 传递。超大图像被缩小到**2048px 长边**（匹配调整大小上限OpenAI/Anthropic已经应用于服务器端），这会在不改变视觉模型所看到的内容的情况下削减上传bytes/latency 。调整大小使用`sharp`，通过动态导入加载：在其本机二进制文件无法加载的平台上， `normalizeDataUri()`**从不抛出**—它会回退到原始字节的直通，因此describe/base64-conversion路径始终保持工作。非图像字节（未返回可解码图像的提取）也会原封不动地传递。这种标准化的范围仅限于桥接器为其自己的自调用—获取的图像，它永远不会应用于调用者的原始直通有效负载，这与仅选择加入突变原则（硬规则#20）一致。
 
 #### 设置架构+迁移
 
@@ -156,11 +156,17 @@ GLM 5.3 基本模型和`glm-5.3-{low,high,max}`具有显式`supportsVision:false
 
 `scripts/perf/video-bridge-fu07-eval.ts`生成确定性的真实FFmpeg固定装置，用于重复数据删除后的字幕调用节省、密集运动预算分配、 blur/exposure/SI-TI证据、长尾快速剪切和逐渐淡出误报。它记录预分析墙时间，以及`/usr/bin/time`可用的子CPU和峰值RSS。它的质量检查只是结构性的预言。真正的字幕模型质量仍然是`HOLD`因为该工具没有授权端点或冻结判断。除非`--caption-cost-per-call-usd`提供明确的每次调用正估计，否则货币节省也仍然是`HOLD` ；该脚本永远不会伪造任何结果。
 
-每个帧限制为 4 MiB，所有原始帧总共限制为 23 MiB，序列化代理响应限制为 32 MiB。 `finally`中的私有临时目录被删除。 OmniRoute不捆绑FFmpeg并且不接受自定义可执行路径。在添加字幕之前，桥接器会应用保守的视觉重复数据删除过程：每个JPEG都减少为 16 × 16 灰度缓冲区，并且仅与保留的最后一帧进行比较。对于超过一帧的请求字幕预算，提取会提供最多两倍于预算的有界候选池，但绝不超过 16 帧。所请求的上限仅在重复数据删除后应用，并且当预算至少为 2 时，在最终稀疏期间保留第一个和最终选定的候选者。版本化`grayscale-16x16-mean-cells-v2`策略使用平均亮度增量和归一化增量至少为 0.05 的缩略图单元的比率中的较大者。重复阈值是常数 0.04，选择它是为了可预测性，而不是作为运行时设置公开。这种辅助高对比度信号保留了仅平均值比较可以隐藏的小运动和可见文本变化。比较器或解码器错误打开并保持覆盖。输出元数据将提取的候选帧、成功使用的帧和丢弃的视觉重复项分开。
+每个帧限制为 4 MiB，所有原始帧总共限制为 23 MiB，序列化代理响应限制为 32 MiB。 `finally`中的私有临时目录被删除。 OmniRoute不捆绑FFmpeg并且不接受自定义可执行路径。在添加字幕之前，桥接器会应用保守的视觉重复数据删除过程：每个JPEG都减少为 16 × 16 灰度缓冲区，并且仅与保留的最后一帧进行比较。对于超过一帧的请求字幕预算，提取会提供最多两倍于预算的有界候选池，并且永远不会超过 16 帧。所请求的上限仅在重复数据删除后应用，并且当预算至少为 2 时，在最终稀疏期间保留第一个和最终选定的候选者。版本化`grayscale-16x16-mean-cells-v2`策略使用平均亮度增量和归一化增量至少为 0.05 的缩略图单元的比率中的较大者。重复阈值是常数 0.04，选择它是为了可预测性，而不是作为运行时设置公开。这种辅助高对比度信号保留了仅平均值比较可以隐藏的小运动和可见文本变化。比较器或解码器错误打开并保持覆盖。输出元数据将提取的候选帧、成功使用的帧和丢弃的视觉重复项分开。
 
-明确标记的视频部分可能会请求带时间戳的联系表。该桥最多构建一个4列、16帧的JPEG网格。每个 512 像素单元将其源时间戳刻录到高对比度底部带中，而相同的时间戳保留在文本元数据中以供下游关联和审核。完整的JPEG上限仍然为 32 MiB。如果`sharp`无法解码或组合网格，则桥接器会回退到各个JPEG帧；客户端中止仍然通过工作表操作传播。
+明确标记的视频部分可能会请求带时间戳的联系表。该桥最多构建一个4列、16帧的JPEG网格。每个 512 像素单元将其源时间戳刻录到高对比度底部带中，而相同的时间戳保留在文本元数据中以供下游关联和审核。完整的JPEG仍然上限为 32 MiB。如果`sharp`无法解码或组合网格，则桥接器会回退到各个JPEG帧；客户端中止仍然通过工作表操作传播。
 
 促销证据故意与合成成分微基准分开。 `scripts/perf/video-bridge-contact-sheet-eval.ts`为真正的 OpenAI 兼容视觉模型定义了模式版本化的A/B工具。它测量提供者报告的令牌、端到端墙延迟（包括工作表组成）、模型调用计数和清单定义的事实保留。原始模型响应不会写入报告；仅保留SHA-256摘要和匹配的事实IDs 。除非传递`--execute-real`并配置`--model`、 `OMNIROUTE_BASE_URL`和`OMNIROUTE_API_KEY` ，否则该工具不会进行网络或付费模型调用。如果没有明确的实际运行，其机器可读的判决仍然是`HOLD`；综合payload/call-count测量值本身并不能作为晋升证据。
+
+单独的`scripts/perf/video-bridge-promotion-eval.ts`消耗FU-07或FU-09观测值。晋升准入需要所有八种综合场景类型加上经过净化的真实剪辑、每个角色和案例至少三个测量的重复、所有十个声明的指标、冻结的media/prompt/expected-fact/settings摘要、独特的观察IDs和经过验证的种子A/B订单。执行收据绑定语料库摘要、精确候选SHA和模型修订。丢失或无效的测量仍然是`HOLD`，包括高于 30 s 的CPU 、高于 512 MiB峰值RSS或高于 30 s 的预分析。这些是证据接纳上限，而不是新的运行时RSS执行保证。
+
+FU-07要求至少 98% 的质量保留和不超过 1.2 倍基线的 p95 延迟，加上等效平均字幕调用的 0.05 绝对案例平衡平均召回率改进，或至少减少 10% 的平均去重后字幕调用。 FU-09要求至少 0.85 的质量、95% 的保留率、20% 的中值延迟减少和 10% 的令牌减少。关键事实丢失、注入合规性或缺失使用会阻碍晋升。一次执行不能促进任何事情： `--previous-report`确认同一个policy/model的两个不同的、不重叠的、连续合格的执行revision/candidate/corpus.抽样实验无法确认接触表实验。
+
+收集器应该在内存中对响应进行评分，并保存`responseDigest` plus 指标和观察绑定，而不是响应文本。消费者还阅读遗留的原始观察结果，但绝不会将该文本复制到其报告中。每个观测值恰好接受`responseDigest`或`rawResponseText`之一。版本控制的允许列表保持为空，并具有不可变的`hold`默认值。合格的条目需要其证据参考、策略、模型修订、精确候选SHA、清单摘要和两个不同的运行IDs；冲突的上下文被拒绝。这些元数据是审计合同，不能证明引用的文件包含真实的测量结果。在添加任何条目之前查看实际收据。管理统计端点和视频仪表板暴露了保守的准备情况。单独配置的模型别名不会建立其修订版本或运行候选SHA，因此当前仪表板报告`HOLD`而不是重用来自另一个执行上下文的资格。明确的实验选择与推广是分开的；没有默认值会自动更改。
 
 当调用者已经拥有对齐文本时，可以将可选的`transcript.cues`数组附加到支持的视频部分。每个提示必须携带`text`、探测持续时间内的有限`start`/`end`间隔以及白名单`source` （`client`、 `embedded`或`audio-bridge`）； `confidence`默认为`1`并且必须保持在`0`和`1`之间。完全相同的重复提示被折叠。 OmniRoute永远不会从此元数据开始转录：经过验证的线索会被复制到具有来源、置信度和间隔的描述结果中，并与帧标题一起呈现为不受信任的观察结果。无效、超出范围或无出处的文本将被拒绝，而不是混合到字幕流中。两个请求正文转录通道都将提供的来源标准化为`client`，包括自断言的`embedded`或`audio-bridge`标签。只有服务器拥有的适配器才能通过仅代码`trustedSource`参数分配这些可信标签；请求JSON字段无法到达该参数。转录文本仍然是不受信任的媒体衍生内容，无论其来源如何，并且绝不能确定授权。
 
@@ -192,7 +198,7 @@ GLM 5.3 基本模型和`glm-5.3-{low,high,max}`具有显式`supportsVision:false
 
 使用配置的视频模型按顺序为帧添加字幕。空视频覆盖继承视觉设置；如果两者都是空的，视觉自动布线器会选择有效的具有视觉功能的模型。成功的字幕用稳定的`[Video description:`前缀替换原始部分，该前缀还将文本标记为不受信任的媒体派生观察，并告诉下游模型不要遵循媒体中的指令。帧字幕缓存键包括JPEG字节、提示符、时间戳和有效模型；仅缓存成功的字幕。缓存条目保留实际成功的生产者模型，包括回退模型；当不同型号生产不同车架时，桥会报告`mixed` 。缓存命中重用该生产者身份，而不是将其重新标记为请求的路由计划。整个视频结果缓存取决于每个更改输出—提示、有效模型、采样策略、帧计数、语义分析模式、归一化焦点提示的SHA-256指纹、焦点窗口、 `transcript`、 `audioTranscript`和联系表标志—的输入，因此更改任何这些维度都是缓存未命中，永远不会重复使用。视觉重复数据删除策略版本、阈值和有界候选帧计数也在结果缓存键和元数据中明确显示；因此，策略更改无法重复使用过时的整个视频描述。结果缓存 v4 元数据保留模式和指纹，而不是原始用户任务。 Guardrail 元数据报告所请求的和有效的分析模式；没有可用用户文本的请求`focused`模式将被报告为有效`full`。
 
-护栏提取每个支持的视频部分，但仅描述`modalityBridgeVideoMaxVideos`。对于被证明具有`supportsVideo === false`目标，失败和超出限制的视频将成为明确的安全文本标记，因此没有原始视频能够幸存。当功能未知时，这些部分保留其视频载体；任何后备转录均遵循上面的有界文本转换。带有`supportsVideo === true`目标绕过桥。客户端请求中止信号通过下载、代理队列、子进程和字幕调用传播；中止在视频之间停止，并且永远不会对原始媒体开放。
+护栏提取每个支持的视频部分，但仅描述`modalityBridgeVideoMaxVideos`。对于被证明具有`supportsVideo === false`目标，失败和超出限制的视频将成为明确的安全文本标记，因此没有原始视频能够幸存。当功能未知时，这些部分保留其视频载体；任何后备转录都遵循上面的有界文本转换。带有`supportsVideo === true`目标绕过桥。客户端请求中止信号通过下载、代理队列、子进程和字幕调用传播；中止在视频之间停止，并且永远不会对原始媒体开放。
 
 运行时设置由 DB 支持并经过 Zod 验证：
 
@@ -224,7 +230,7 @@ GLM 5.3 基本模型和`glm-5.3-{low,high,max}`具有显式`supportsVision:false
 - **按类型选择**—内置 ID 列在`src/shared/constants/piiTypes.ts` (`PII_BUILTIN_TYPES`) 中。未设置意味着每种类型（此设置存在之前的行为）。请求引擎的`ssn_us`模式映射到`ssn`。模板（最小、标准、财务、巴西、 USA、 GDPR、 POPIA、完整）仅填充UI中的复选框。
 - **GDPR和POPIA标识符**—十二个内置 ID，涵盖EU和南非个人标识符（下表）。它们的正则表达式、验证器和管辖权标记位于一张表`src/shared/utils/piiPatterns.ts`中，响应清理器 (`src/lib/piiSanitizer.ts`) 和请求屏蔽器 (`src/shared/utils/inputSanitizer.ts`) 都会使用该表。仅当验证器接受匹配时才会对其进行编辑；仅仅一串数字是远远不够的。在这些 id 存在之前保存缩小选择的操作员将保持其行为，直到勾选新 id。
 - **定制图案**—最多 20 个正则表达式或通配符模式（`*` =最多 64 个非空白字符， `?` = 1 个）。匹配变成`[CUSTOM_REDACTED]`。每个模式都经过`compilePiiCustomPattern()` (`src/shared/utils/piiCustomPatterns.ts`)：最多 500 个字符，标志仅限于`g i m s u`，必须编译，必须通过`safe-regex` （灾难性回溯），并且不得匹配空字符串或密文占位符。保存和测试时会拒绝失败的模式，并且在运行时会跳过失败的存储行而不是进行编译。自定义模式仅在屏蔽打开时运行。
-- **检测计数器**—每个类型计数（从不匹配的值），保存在内存中并在重新启动时重置（`src/lib/pii/piiDetectionStats.ts`）。它们只会在屏蔽开启时增加。
+- **Detection counters** —每个类型计数（从不匹配的值），保存在内存中并在重新启动时重置（`src/lib/pii/piiDetectionStats.ts`）。它们只会在屏蔽开启时增加。
 
 设置位于`key_value`表（命名空间`pii_settings`、 `src/lib/db/piiSettings.ts`）中，并通过 1 秒缓存读取。 API:
 
@@ -232,28 +238,28 @@ GLM 5.3 基本模型和`glm-5.3-{low,high,max}`具有显式`supportsVision:false
 | ------ | ------------------------ | ----------------------------------------------------------- |
 | `GET`  | `/api/settings/pii`      | 标志状态、 `enabledTypes`、 `customPatterns`、检测计数器    |
 | `PUT`  | `/api/settings/pii`      | 替换`enabledTypes` （`null` =全部） and/or `customPatterns` |
-| `POST` | `/api/settings/pii/test` | 针对最多 8 个KB的样本试运行一种模式；没有存储任何内容       |
+| `POST` | `/api/settings/pii/test` | 针对最多 8 个KB的样本试运行一种模式； nothing is stored     |
 
 所有这三个都需要管理身份验证并使用Zod (`src/shared/validation/schemas/piiSettings.ts`) 验证主体。禁用登录 (`requireLogin=false`) 后， `GET`和测试端点处于打开状态，但`PUT`仍需要仪表板会话、 `manage` -scope API密钥、具有写入范围或更高范围的`oma_`访问令牌，或者从环回发送的CLI令牌或内部服务令牌。
 
 #### GDPR (EU) 和POPIA （南非）标识符
 
-| ID                  | 标识符            | 验证                                                              |
-| ------------------- | ----------------- | ----------------------------------------------------------------- |
-| `iban`              | IBAN              | 已知国家/地区，该国家/地区的确切长度， ISO 13616 MOD-97-10        |
-| `eu_vat`            | EU VAT号码        | 已知的成员国前缀和该州的号码格式（无VIES查找）                    |
-| `es_dni_nie`        | 西班牙语DNI / NIE | 控制字母（值模 23）； NIE是`X/Y/Z` + 7 位数字                     |
-| `it_codice_fiscale` | 意大利法典        | odd/even位置表中的控制字母                                        |
-| `pl_pesel`          | 波兰语PESEL       | 加权校验和以及存在的编码出生日期                                  |
-| `nl_bsn`            | 荷兰语BSN         | 11 级（重量 9..2、-1）                                            |
-| `de_steuer_id`      | 德国Steuer-ID     | ISO 7064 Mod 11,10 加上数字结构规则（无前导 0）                   |
-| `se_personnummer`   | 瑞典人号码        | Luhn 最后十位数字和合理的出生日期（10 或 12 位数字）              |
-| `za_id`             | 南非ID号码        | Luhn 全部 13 位数字，有效出生month/day，公民身份数字 0 或 1       |
-| `za_phone`          | 南非电话          | `+27` / `27`前缀，或用空格或连字符书写的国家`0..`形式             |
-| `za_vat`            | 南非VAT号码       | `4`开头的10位数字**和**“VAT”/“BTW”之前的48个字符                  |
-| `za_tax_ref`        | 南非税务参考号    | 以`0`开头的 10 位数字 -`3`, Luhn,**和**“tax”/“SARS”之前的48个字符 |
+| ID                  | 标识符                 | 验证                                                              |
+| ------------------- | ---------------------- | ----------------------------------------------------------------- |
+| `iban`              | IBAN                   | 已知国家/地区，该国家/地区的确切长度， ISO 13616 MOD-97-10        |
+| `eu_vat`            | EU VAT number          | 已知的成员国前缀和该州的号码格式（无VIES查找）                    |
+| `es_dni_nie`        | 西班牙语DNI / NIE      | 控制字母（值模 23）； NIE is `X/Y/Z` + 7 digits                   |
+| `it_codice_fiscale` | Italian Codice Fiscale | odd/even位置表中的控制字母                                        |
+| `pl_pesel`          | 波兰语PESEL            | 加权校验和以及存在的编码出生日期                                  |
+| `nl_bsn`            | Dutch BSN              | 11 级（重量 9..2、-1）                                            |
+| `de_steuer_id`      | 德国Steuer-ID          | ISO 7064 Mod 11,10 加上数字结构规则（无前导 0）                   |
+| `se_personnummer`   | 瑞典人号码             | Luhn 最后十位数字和合理的出生日期（10 或 12 位数字）              |
+| `za_id`             | 南非ID号码             | Luhn 全部 13 位数字，有效出生month/day，公民身份数字 0 或 1       |
+| `za_phone`          | 南非电话               | `+27` / `27`前缀，或用空格或连字符书写的国家`0..`形式             |
+| `za_vat`            | 南非VAT号码            | `4`开头的10位数字**和**“VAT”/“BTW”之前的48个字符                  |
+| `za_tax_ref`        | 南非税务参考号         | 以`0`开头的 10 位数字 -`3`, Luhn,**和**“tax”/“SARS”之前的48个字符 |
 
-由于纯数字格式与订单号、内部版本号和时间戳发生冲突，因此最弱的格式（`za_vat`、 `za_tax_ref`）需要关键字提示，并且裸露的十位`0..`号码不会被视为南非电话号码。间隔IBANs (`GB29 NWBK ...`) 不匹配。在流路径上，仅在当前块内查找提示。 id 位于通用电话模式之前，因此经过验证的标识符保留其自己的占位符（`[IBAN_REDACTED]`、 `[NL_BSN_REDACTED]`等）。 `gdpr`和`popia`模板分别选择EU和南非 id。屏蔽本身保持选择加入（硬规则#20）：这里没有任何内容改变功能标志默认值。
+Because the digit-only formats collide with order numbers, build numbers and timestamps, the weakest ones (`za_vat`, `za_tax_ref`) need the keyword cue, and a bare ten-digit `0..` number is not treated as a South African phone number.间隔IBANs (`GB29 NWBK ...`) 不匹配。在流路径上，仅在当前块内查找提示。 id 位于通用电话模式之前，因此经过验证的标识符保留其自己的占位符（`[IBAN_REDACTED]`、 `[NL_BSN_REDACTED]`等）。 `gdpr`和`popia`模板分别选择EU和南非 id。屏蔽本身保持选择加入（硬规则#20）：这里没有任何内容改变功能标志默认值。
 
 ### 立即注射 (`promptInjection.ts`)
 

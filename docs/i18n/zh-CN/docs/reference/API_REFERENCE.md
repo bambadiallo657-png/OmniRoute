@@ -901,26 +901,26 @@ CLI 会将 `base_url + /responses` 升级为 WebSocket，OmniRoute 再将其隧�
 
 ---
 
-## 配额与问题报告
+## 配额和问题报告
 
-| 方法 | 路径                | 描述                                                                  |
-| ---- | ------------------- | --------------------------------------------------------------------- |
-| GET  | `/v1/quotas/check`  | 在签发已注册密钥之前，预先验证 `provider` + `accountId` 的配额        |
-| POST | `/v1/issues/report` | 将配额/密钥签发失败报告到 GitHub（需要 `GITHUB_ISSUES_REPO` + token） |
+| 方法 | 小路                | 描述                                                            |
+| ---- | ------------------- | --------------------------------------------------------------- |
+| GET  | `/v1/quotas/check`  | 在发布注册密钥之前预先验证`provider` + `accountId`的配额        |
+| POST | `/v1/issues/report` | 向GitHub报告quota/key发行失败（需要`GITHUB_ISSUES_REPO` +代币） |
 
-**身份验证：**Bearer API 密钥（`isAuthenticated`）。
+**授权：** `/v1/quotas/check`采用 Bearer API密钥 (`isAuthenticated`)。 `/v1/issues/report`仅限管理 (`requireManagementAuth`)，如`/api/v1/registered-keys`：仪表板会话、本地CLI令牌或具有`manage`/`admin`范围的API密钥；仅推理API键获取`403`。
 
-### 配额会话恢复（选择启用）
+### 配额会话恢复（选择加入）
 
-非流式 `POST /v1/chat/completions` 或 `POST /v1/responses` 如果因终止性配额错误而失败（`402`/`429`/`503`，且响应正文表明配额或额度已耗尽），可以将请求暂存并稍后重放，而不是直接返回错误。调用方可以在每个请求中通过以下三个标头选择启用：
+因终端配额错误而失败的非流式`POST /v1/chat/completions`或`POST /v1/responses` （`402`/`429`/`503`其主体表示配额或积分已耗尽）可以停放并稍后重播，而不是返回错误。调用者选择使用三个标头的每个请求：
 
-| 标头                         | 值                                |
-| ---------------------------- | --------------------------------- |
-| `x-omniroute-quota-recovery` | `auto`                            |
-| `x-omniroute-session`        | 会话 ID，`[A-Za-z0-9._:-]{1,128}` |
-| `x-omniroute-recovery-turn`  | 会话内唯一的回合 ID（相同规则）   |
+| 标头                         | 价值                                 |
+| ---------------------------- | ------------------------------------ |
+| `x-omniroute-quota-recovery` | `auto`                               |
+| `x-omniroute-session`        | 会话 ID、 `[A-Za-z0-9._:-]{1,128}`   |
+| `x-omniroute-recovery-turn`  | 将 id 在会话中设置为唯一（相同规则） |
 
-只有满足以下条件的回合才符合要求：`stream: false`、没有工具、工具历史记录或 `previous_response_id`，且没有设置 `x-omniroute-connection` 固定连接；此外还必须设置 `STORAGE_ENCRYPTION_KEY`（请求会以加密形式存储最多 24 小时）。响应随后为 `202`，并包含 `recovery.poll`；可以轮询 `GET /v1/quota-recoveries/{id}`（待处理时返回 `202`，完成时返回包含恢复后正文的 `200`），也可以使用 `DELETE` 取消。工单仅对创建它的 API 密钥可见。如果重放结果不确定，则会进入 `needs_confirmation` 状态，而不会发送两次。来源：`src/lib/quota/quotaSessionRecovery.ts`。
+只有没有工具、工具历史记录或`previous_response_id`且没有`x-omniroute-connection`引脚的`stream: false`轮次才符合资格，并且必须设置`STORAGE_ENCRYPTION_KEY` （请求加密存储最多 24 小时）。那么响应是`202`和`recovery.poll`； poll `GET /v1/quota-recoveries/{id}` （待处理时为`202` ，完成后`200`与恢复的正文）或使用`DELETE`取消。票证仅对创建票证的API键可见。结果不确定的重播以`needs_confirmation`结束，而不是发送两次。来源： `src/lib/quota/quotaSessionRecovery.ts`。
 
 ---
 
@@ -1570,7 +1570,7 @@ Content-Type: application/json
 }
 ```
 
-> **模式注释**(`setBudgetSchema`): `apiKeyId`为必填项； `dailyLimitUsd`、 `weeklyLimitUsd`或`monthlyLimitUsd`中至少之一必须大于零。可选字段： `warningThreshold` (0–1)、 `resetInterval` (`daily` | `weekly` | `monthly`)、 `resetTime` (`HH:MM`)。旧版`{keyId, limit, period}`形状返回`400 Bad Request`。
+> **架构注释**(`setBudgetSchema`): `apiKeyId`为必填项； `dailyLimitUsd`、 `weeklyLimitUsd`或`monthlyLimitUsd`中至少之一必须大于零。可选字段： `warningThreshold` (0–1)、 `resetInterval` (`daily` | `weekly` | `monthly`)、 `resetTime` (`HH:MM`)。旧版`{keyId, limit, period}`形状返回`400 Bad Request`。
 
 ## 令牌限制
 
@@ -1649,19 +1649,23 @@ DELETE /api/usage/token-limits?id=tl-abc
 
 ---
 
-## 已注册密钥（自动管理）
+## 注册密钥（自动管理）
 
-由自动密钥管理子系统使用，用于针对后端提供者/账户签发和轮换 API 密钥，并设置每日/每小时配额。
+由自动密钥管理子系统用来针对支持provider/account颁发和轮换API密钥，并具有daily/hourly配额。
 
-| Method | Path                                  | Description                                                                                                                                                            |
-| ------ | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/api/v1/registered-keys`             | 列出已注册密钥（仅显示掩码后的前缀）                                                                                                                                   |
-| POST   | `/api/v1/registered-keys`             | 签发新的已注册密钥 — 请求体：`{name, provider?, accountId?, idempotencyKey?, expiresAt?, dailyBudget?, hourlyBudget?}`。原始密钥仅返回**一次**。配额拒绝时返回 `429`。 |
-| GET    | `/api/v1/registered-keys/[id]`        | 获取已注册密钥的元数据（不包含原始密钥内容）                                                                                                                           |
-| DELETE | `/api/v1/registered-keys/[id]`        | 撤销已注册密钥                                                                                                                                                         |
-| POST   | `/api/v1/registered-keys/[id]/revoke` | 显式撤销端点（效果与 `DELETE` 相同）                                                                                                                                   |
+| 方法   | 小路                                  | 描述                                                                                                                                                            |
+| ------ | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/v1/registered-keys`             | 列出已注册的键（仅限屏蔽前缀）                                                                                                                                  |
+| POST   | `/api/v1/registered-keys`             | 发出新的注册密钥—主体： `{name, provider?, accountId?, idempotencyKey?, expiresAt?, dailyBudget?, hourlyBudget?}`。返回原始密钥**一次**。配额拒绝时返回`429` 。 |
+| GET    | `/api/v1/registered-keys/[id]`        | 检索已注册密钥的元数据（无原材料）                                                                                                                              |
+| DELETE | `/api/v1/registered-keys/[id]`        | 撤销已注册的密钥                                                                                                                                                |
+| POST   | `/api/v1/registered-keys/[id]/revoke` | 显式撤销端点（与DELETE效果相同）                                                                                                                                |
+| GET    | `/api/v1/providers/[provider]/limits` | 阅读提供者的发行上限                                                                                                                                            |
+| PUT    | `/api/v1/providers/[provider]/limits` | 设置提供者的发行上限— body: `{maxActiveKeys?, dailyIssueLimit?, hourlyIssueLimit?}`                                                                             |
+| GET    | `/api/v1/accounts/[id]/limits`        | 查看账户的发行上限                                                                                                                                              |
+| PUT    | `/api/v1/accounts/[id]/limits`        | 设置账户的发行上限—与提供者路由相同                                                                                                                             |
 
-**身份验证：**管理会话/API 密钥（`requireManagementAuth`）— 与 `/api/keys` 使用相同的保护机制：仪表板会话、本地 CLI 令牌，或具有 `manage`/`admin` 作用域的 API 密钥；仅推理 API 密钥将获得 `403`。另请参阅 `/v1/quotas/check` 和 `/v1/issues/report`。
+**授权：**管理session/API密钥 (`requireManagementAuth`) —与`/api/keys`相同的保护：仪表板会话、本地CLI令牌或具有`manage`/`admin`范围的API密钥；仅推理API键得到`403`。另请参见`/v1/quotas/check`和`/v1/issues/report`。
 
 ---
 
@@ -1783,25 +1787,25 @@ curl -X DELETE http://localhost:20128/api/resilience/model-cooldowns \
 
 ---
 
-## MCP 服务器
+## MCP服务器
 
-OmniRoute 内置了一个模型上下文协议服务器，支持 3 种传输方式（stdio、SSE、streamable-http）和作用域限定的工具。下面的控制面板端点读取状态/审计数据，并代理 HTTP 传输。
+OmniRoute附带了一个嵌入式模型上下文协议服务器，具有 3 种传输（stdio、 SSE、streamable-http）和范围工具。下面的仪表板端点读取status/audit数据并代理HTTP传输。
 
-| 方法   | 路径                   | 描述                                                                                         | -------------------- |
-| ------ | ---------------------- | -------------------------------------------------------------------------------------------- | -------------------- |
-| GET    | `/api/mcp/status`      | 心跳、传输方式、在线状态、上次调用、热门工具、24 小时成功率                                  |
-| GET    | `/api/mcp/tools`       | MCP 工具列表，包含 `name`、`description`、`scopes`、`phase`、`auditLevel`、`sourceEndpoints` |
-| GET    | `/api/mcp/sse`         | 为 SSE 传输打开 SSE 流（如果 MCP 已禁用或传输方式不匹配，则返回 `503`）                      |
-| POST   | `/api/mcp/sse`         | 在 SSE 传输上发送 JSON-RPC 帧                                                                |
-| GET    | `/api/mcp/stream`      | 打开 Streamable HTTP 传输的 SSE 端（服务器发起的消息）                                       |
-| POST   | `/api/mcp/stream`      | 在 Streamable HTTP 传输上发送 JSON-RPC 帧                                                    |
-| DELETE | `/api/mcp/stream`      | 结束 Streamable HTTP 会话                                                                    |
-| GET    | `/api/mcp/audit`       | 查询审计日志 — `?limit=`、`?offset=`、`?tool=`、`?success=true                               | false`、`?apiKeyId=` |
-| GET    | `/api/mcp/audit/stats` | 汇总审计统计信息（总数、成功率、平均持续时间、热门工具）                                     |
+| 方法 | 小路 | 描述 |
+| ------ | ---------------------- | ------------------------------------------------------------------------------------------------ | -------------------- |
+| GET | `/api/mcp/status` | 心跳、传输、在线状态、最后调用、顶级工具、24小时成功率 |
+| GET | `/api/mcp/tools` | MCP工具列表，包括`name`、 `description`、 `scopes`、 `phase`、 `auditLevel`、 `sourceEndpoints` |
+| GET | `/api/mcp/sse` | 打开SSE传输的SSE流（如果MCP禁用或传输不匹配，则返回`503` ） |
+| POST | `/api/mcp/sse` | 在SSE传输上发送 JSON-RPC 帧 |
+| GET | `/api/mcp/stream` | Streamable HTTP传输的开放SSE端（服务器发起的消息） |
+| POST | `/api/mcp/stream` | 在 Streamable HTTP传输上发送 JSON-RPC 帧 |
+| DELETE | `/api/mcp/stream` | 结束 Streamable HTTP会话 |
+| GET | `/api/mcp/audit` | 查询审计日志— `?limit=`, `?offset=`, `?tool=`, `?success=true                                | false`, `?apiKeyId=` |
+| GET | `/api/mcp/audit/stats` | 汇总审核统计数据（总数、成功率、平均持续时间、顶级工具） |
 
-**身份验证：**`sse`/`stream` 传输遵循 MCP 专用身份验证接口（带有 `mcp` 作用域的 Bearer API 密钥）；`status`/`tools`/`audit*` 路由可从控制面板读取（除能够访问控制面板主机外，无需额外身份验证）。
+**授权：** `sse`/`stream`传输遵循 MCP 特定的身份验证表面（具有`mcp`范围的承载API密钥）； `status`/`tools`/`audit*`路由可以从仪表板读取（除了到达仪表板主机之外不需要额外的身份验证）。
 
-> 两种 HTTP 传输均受 `settings.mcpEnabled` 和 `settings.mcpTransport` 控制 — 传输方式不匹配时返回 `400`，MCP 禁用时返回 `503`。
+> 两种HTTP传输均由`settings.mcpEnabled`和`settings.mcpTransport` —门控，传输不匹配返回`400`， MCP禁用状态返回`503`。
 
 ---
 

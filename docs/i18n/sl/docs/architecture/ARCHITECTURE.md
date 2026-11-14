@@ -14,7 +14,7 @@ OmniRoute je lokalni usmerjevalni prehod AI in nadzorna plošča, zgrajena na Ne
 
 Osnovne zmogljivosti:
 
-- Površina API združljiva z OpenAI, za CLI/tools (381 ponudnikov, 159 izvajalskih modulov)
+- Površina API združljiva z OpenAI, za CLI/tools (393 ponudnikov, 159 izvajalskih modulov)
 - prevod Request/response med formati ponudnika
 - Nadomestni kombinirani model (zaporedje več modelov)
 - Strukturirani kombinirani koraki (`provider + model + connection`) z vrstnim redom med izvajanjem `compositeTiers`
@@ -333,28 +333,18 @@ Moduli ponudnikov OAuth (27 posameznih datotek v `src/lib/oauth/providers/`):
 - Skupni pomočniki: `codebuddyDeviceAuth.ts` (tok naprave CodeBuddy CN/intl), `museCodeDeviceResponse.ts`
 - Tanka ovojna plast: `src/lib/oauth/providers.ts` — ponovno izvaža iz posameznih modulov
 
-## 5) Vdelane storitve (v3.8.4)
+## 5) Vgrajene storitve (v3.8.4)
 
-OmniRoute lahko namesti, nadzoruje in usmerja promet v lokalno zagnane procese orodij UI,
-imenovane **vdelane storitve**. Priloženih je pet: 9Router, CLIProxyAPI, Bifrost, Mux in Dario.
+OmniRoute lahko namesti, nadzoruje in usmerja v lokalno izvajajoče se procese orodja AI imenovane** vgrajene storitve** . Poslanih je pet: 9Router, CLIProxyAPI, Bifrost, Mux in Dario.
 
 Arhitekturne plasti:
 
-- **Uporabniški vmesnik** (`/dashboard/providers/services`) — stran z dvema zavihkoma in kontrolniki življenjskega cikla,
-  sprotnim pretakanjem dnevnikov, upravljanjem ključev API ter (za 9Router) vdelanim izvornim uporabniškim vmesnikom prek
-  notranjega obratnega posredniškega strežnika.
-- **API** (`/api/services/{name}/*`) — 11 končnih točk za 9Router, 10 za CLIProxyAPI in po 8 za Bifrost / Mux / Dario,
-  vse razvrščene kot **LOCAL_ONLY** (strogo pravilo št. 17). Skupna končna točka SSE `GET /api/services/[name]/logs`
-  služi obema storitvama.
-- **Nadzornik** (`src/lib/services/`) — splošni razred `ServiceSupervisor` ovija
-  `child_process.spawn`, hrani 5-MB krožni medpomnilnik za pretakanje dnevnikov SSE, zanko
-  preverjanja zdravja, zaklep za atomske operacije in postopno zaustavitev SIGTERM→SIGKILL.
-  `bootstrap.ts` ob zagonu procesa poveže vse konfigurirane storitve.
-- **Ponudnik/izvajalnik** (`open-sse/executors/ninerouter.ts`) — 9Router je izpostavljen kot
-  dejanski ponudnik. Modeli imajo predpono `9router/{sub}/{model}` in se vsakih 5 min
-  sinhronizirajo iz končne točke `/v1/models` storitve 9Router.
+- **UI** (`/dashboard/providers/services`) stran z dvema zavihkoma — s kontrolniki življenjskega cikla, pretakanjem dnevnika v živo, upravljanjem ključev API in (za 9Router) vdelanim izvornim UI prek notranjega povratnega proxyja.
+- **API** (`/api/services/{name}/*`) — 11 končnih točk za 9Router, 10 za CLIProxyAPI, po 8 za Bifrost / Mux / Dario, vse razvrščene**LOCAL_ONLY** (trdo pravilo #17). Skupna končna točka `GET /api/services/[name]/logs` SSE služi obema storitvama.
+- **Nadzornik** (`src/lib/services/`) — generični razred `ServiceSupervisor` ovija `child_process.spawn`, vsebuje obročni medpomnilnik 5 MB za pretakanje dnevnika SSE, zanko zdravstvene sonde, zaklepanje atomskega delovanja in elegantno zaustavitev SIGTERM→SIGKILL. `bootstrap.ts` poveže vse konfigurirane storitve ob zagonu procesa.
+- **Provider/executor** (`open-sse/executors/ninerouter.ts`) — 9Router je izpostavljen kot pravi ponudnik. Modeli imajo predpono `9router/{sub}/{model}` in se vsakih 5 minut sinhronizirajo s končne točke `/v1/models` 9Routerja.
 
-Podrobnejši pregled: `docs/frameworks/EMBEDDED-SERVICES.md`
+Globok potop: `docs/frameworks/EMBEDDED-SERVICES.md`
 
 ## Glavni podsistemi (v3.8.0)
 
@@ -369,7 +359,7 @@ Auto Combo dinamično oceni in izbere cilje usmerjanja ob času zahteve, namesto
 
 Ključne zmogljivosti:
 
-- **20 strategij usmerjanja** (prioritetno, tehtano, najprej izpolni, krožno, P2C, naključno, najmanj uporabljeno, stroškovno optimizirano, zaznavanje ponastavitve, okno za ponastavitev, prostor za višino, uteženo glede na kvoto, strogo naključno,** avto** , lkgp, kontekstno optimizirano, predpomnilnik optimizirano, kontekstno posredovanje,** fuzija** , cevovod) — auto je dodatek naslova v v3.8.0; `fusion` (panel fan-out + sodnik sinteza, `open-sse/services/fusion.ts`) je nov v v3.8.36.
+- **21 strategij usmerjanja** (prioritetno, uteženo, najprej izpolni, krožno, P2C, naključno, najmanj uporabljeno, stroškovno optimizirano, s ponastavitvijo, ponastavitveno okno, najprej potek, višina, uteženo s kvoto, strogo naključno,** avto** , lkgp, kontekstno optimizirano, predpomnilnik optimizirano, kontekstno posredovanje,** fuzija** , cevovod) — auto je dodatek naslova v v3.8.0; `fusion` (panel fan-out + sodnik sinteza, `open-sse/services/fusion.ts`) je nov v v3.8.36.
 - **16-faktorsko točkovanje** : kvota, zdravje, inverzni stroški, inverzna zakasnitev, prileganje nalogi in še deset drugih. Kanonična tabela faktorjev in njihovih privzetih uteži živi v [`docs/routing/AUTO-COMBO.md`](../routing/AUTO-COMBO.md) —, če bi jo ponovili tukaj, bi ji dali drugo mesto, da bi zastarela.
 - **Virtualna tovarna** materializira efemerne kombinacije, ko ne obstaja nobena ujemajoča se poimenovana kombinacija, pri čemer pridobi kandidate iz zdravih aktivnih povezav ponudnika.
 - **Samodejne predpone** : `auto/coding`, `auto/cheap`, `auto/fast`, `auto/offline`, `auto/smart`, `auto/lkgp` — vsak podprt z nastavljenim profilom teže.
@@ -392,7 +382,7 @@ Za zagotavljanje posameznih agentov in podrobnosti OAuth glejte [`docs/framework
 
 ### C. Zaščitne ograje
 
-Modul guardrails je plast vmesne programske opreme, ki jo je mogoče vroče ponovno naložiti in pregleduje zahteve in odgovore za PII, takojšnje vstavljanje in vsebino, ki ni varna. Kršitve kratkega stika zahteve z HTTP** 503** plus strukturirana koda napake, ki klicateljem na nižji stopnji omogoča ponovni poskus ali razvejanje.
+Modul guardrails je plast vmesne programske opreme, ki jo je mogoče vroče znova naložiti in pregleduje zahteve in odgovore za PII, takojšnje vstavljanje in nevarno vsebino vida. Kršitve kratkega stika zahteve z HTTP** 503** plus strukturirana koda napake, ki klicateljem na nižji stopnji omogoča ponovni poskus ali razvejanje.
 
 - Koren modula: `src/lib/guardrails/` (`base.ts`, `registry.ts`, `piiMasker.ts`, `promptInjection.ts`, `visionBridge.ts`, `visionBridgeHelpers.ts`)
 - Vroče ponovno nalaganje: register spremlja spremembe konfiguracije in znova zgradi verigo na mestu
@@ -426,7 +416,7 @@ Avtorizacijski cevovod razvrsti vsako dohodno zahtevo in pred odpošiljanjem upo
 
 - Vhod v cevovod: `src/server/authz/pipeline.ts`
 - Klasifikator zahtev: `src/server/authz/classify.ts` — loči javne združljive poti od upravljalnih poti
-- Popis javnih poti: `src/shared/constants/publicApiRoutes.ts`
+- Javni popis poti: `src/shared/constants/publicApiRoutes.ts`
 - Politike: sestavljivi predikati `src/server/authz/policies/` — (`requireApiKey`, `requireManagement`, `requireFreshAuth` itd.)
 - Pripomočki za glavo: `src/server/authz/headers.ts`
 - Pomočnik pri trditvah: `src/server/authz/assertAuth.ts`
@@ -858,41 +848,47 @@ flowchart LR
 - `src/lib/db/*`: določene module uvozite neposredno — brez zbirnega izvoza (stara plast za ponovni izvoz `localDb.ts` je bila odstranjena)
 - `src/lib/usageDb.ts`: fasada za zgodovino uporabe/dnevnike klicev nad tabelami SQLite
 
-## Pokritost izvajalnikov ponudnikov (vzorec strategije)
+## Pokritost ponudnika izvajalca (strateški vzorec)
 
-Vsak ponudnik ima specializiranega izvajalnika, ki razširja `BaseExecutor` (v `open-sse/executors/base.ts`) in zagotavlja sestavljanje URL-jev, ustvarjanje glav, ponovno poskušanje z eksponentnim podaljševanjem čakanja, kavlje za osveževanje poverilnic ter orkestracijsko metodo `execute()`.
+Vsak ponudnik ima specializiranega izvajalca, ki razširja `BaseExecutor` (v `open-sse/executors/base.ts`), ki zagotavlja gradnjo URL, konstrukcijo glave, ponovni poskus z eksponentnim odmikom, kljuke za osvežitev poverilnic in metodo orkestracije `execute()`.
 
-| Izvajalnik                | Ponudnik(i)                                                                                                                                                | Posebna obravnava                                                              |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `DefaultExecutor`         | OpenAI, Claude, Gemini, Qwen, OpenRouter, GLM, Kimi, MiniMax, DeepSeek, Groq, xAI, Mistral, Perplexity, Together, Fireworks, Cerebras, Cohere, NVIDIA itd. | Dinamična konfiguracija URL-ja/glav za posameznega ponudnika                   |
-| `AntigravityExecutor`     | Google Antigravity                                                                                                                                         | ID-ji projektov/sej po meri, razčlenjevanje Retry-After, prikrivanje napak 429 |
-| `AzureOpenAIExecutor`     | Azure OpenAI                                                                                                                                               | Usmerjanje na podlagi uvedbe, obvezna uporaba poizvedbe api-version            |
-| `BlackboxWebExecutor`     | Blackbox AI (spletni način)                                                                                                                                | Obratno inženirstvo spletne seje z emulacijo prstnega odtisa TLS               |
-| `ClaudeIdentityExecutor`  | Claude.ai (pot CCH)                                                                                                                                        | Cevovodi omejitev in preslikovanja orodij, oblikovanje prstnega odtisa         |
-| `CliProxyApiExecutor`     | Ponudniki, združljivi s CLIProxyAPI                                                                                                                        | Obravnava preverjanja pristnosti in protokola po meri                          |
-| `CloudflareAiExecutor`    | Cloudflare Workers AI                                                                                                                                      | Vstavljanje ID-ja računa, spremljanje uporabe na podlagi Neurons               |
-| `CodexExecutor`           | OpenAI Codex                                                                                                                                               | Vstavi sistemska navodila in vsili stopnjo truda pri sklepanju                 |
-| `ChatGptWebCodexExecutor` | ChatGPT Web (Codex)                                                                                                                                        | Most do Responses API prek brskalniške seje s pripenjanjem niti/obrata         |
-| `CommandCodeExecutor`     | Command Code                                                                                                                                               | OAuth in rotacija glav za posamezno sejo                                       |
-| `CursorExecutor`          | Cursor IDE                                                                                                                                                 | Protokol ConnectRPC, kodiranje Protobuf, podpisovanje zahtev s kontrolno vsoto |
-| `DevinCliExecutor`        | Devin CLI                                                                                                                                                  | Premostitev življenjskega cikla opravil Devin prek modula agenta v oblaku      |
-| `GithubExecutor`          | GitHub Copilot                                                                                                                                             | Osveževanje žetona Copilot, glave, ki posnemajo VSCode                         |
-| `GitlabExecutor`          | GitLab Duo                                                                                                                                                 | GitLab OAuth in usmerjanje z obsegom projekta                                  |
-| `GlmExecutor`             | Z.AI GLM (vključno s prednastavitvijo `glmt`)                                                                                                              | Upoštevanje proračuna za razmišljanje, konstante prednastavitve GLMT           |
-| `GrokWebExecutor`         | Spletni xAI Grok                                                                                                                                           | Obratno inženirstvo spletne seje, izbira načina (razmišljanje/standardno)      |
-| `KieExecutor`             | KIE                                                                                                                                                        | Izdajanje žetonov po meri z rotirajočimi sidri sej                             |
-| `KiroExecutor`            | AWS CodeWhisperer/Kiro                                                                                                                                     | Binarna oblika AWS EventStream → pretvorba v SSE                               |
-| `MuseSparkWebExecutor`    | Muse Spark (splet)                                                                                                                                         | Obratno inženirstvo spletne seje s premostitvijo slikovnih sporočil            |
-| `NlpCloudExecutor`        | NLP Cloud                                                                                                                                                  | Oblika telesa zahteve, specifična za ponudnika                                 |
-| `OpenCodeExecutor`        | OpenCode                                                                                                                                                   | Nastavitev ponudnika, združljiva z AI SDK                                      |
-| `PerplexityWebExecutor`   | Spletni Perplexity                                                                                                                                         | Obratno inženirstvo spletne seje za nadaljevanje klepeta                       |
-| `PetalsExecutor`          | Porazdeljeno sklepanje Petals                                                                                                                              | Decentralizirano usmerjanje po roju                                            |
-| `PollinationsExecutor`    | Pollinations AI                                                                                                                                            | Ključ API ni potreben, zahteve z omejeno hitrostjo                             |
-| `QoderExecutor`           | Qoder AI                                                                                                                                                   | Podpora za PAT in OAuth, brezplačna raven z več modeli                         |
-| `VertexExecutor`          | Google Vertex AI                                                                                                                                           | Preverjanje pristnosti s storitvenim računom, regionalne končne točke          |
-| `DevinDesktopExecutor`    | Devin Desktop                                                                                                                                              | Uvoženi ključ API in pretočni klepet prek Connect-protobuf                     |
+| Izvršitelj                | Ponudnik(-i)                                                                                                                                               | Posebno ravnanje                                                                   |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `DefaultExecutor`         | OpenAI, Claude, Gemini, Qwen, OpenRouter, GLM, Kimi, MiniMax, DeepSeek, Groq, xAI, Mistral, Perplexity, Together, Fireworks, Cerebras, Cohere, NVIDIA itd. | Dinamična konfiguracija URL/header na ponudnika                                    |
+| `AntigravityExecutor`     | Google Antigravity                                                                                                                                         | project/session IDs po meri, Poskusi znova po razčlenjevanju, zamegljenost 429     |
+| `AzureOpenAIExecutor`     | Azure OpenAI                                                                                                                                               | Usmerjanje na podlagi uvajanja, uveljavljanje poizvedbe različice api              |
+| `BlackboxWebExecutor`     | Blackbox AI (spletni način)                                                                                                                                | Obratna spletna seja z emulacijo prstnih odtisov TLS                               |
+| `ClaudeIdentityExecutor`  | Claude.ai (CCH pot)                                                                                                                                        | Cevovodi za preslikavo orodja Constraint +, oblikovanje prstnih odtisov            |
+| `CliProxyApiExecutor`     | Ponudniki, združljivi s CLIProxyAPI                                                                                                                        | Avtorizacija po meri in obravnavanje protokola                                     |
+| `CloudflareAiExecutor`    | Cloudflare Delavci AI                                                                                                                                      | Račun ID injection, sledenje uporabe na podlagi nevronov                           |
+| `CodexExecutor`           | OpenAI Codex                                                                                                                                               | Vstavi sistemska navodila, prisili k razmišljanju                                  |
+| `ChatGptWebCodexExecutor` | splet ChatGPT (Codex)                                                                                                                                      | Odzivi seje brskalnika most API s pripenjanjem thread/turn                         |
+| `CommandCodeExecutor`     | Koda ukaza                                                                                                                                                 | OAuth + vrtenje glave na sejo                                                      |
+| `CursorExecutor`          | Cursor IDE                                                                                                                                                 | protokol ConnectRPC, kodiranje Protobuf, podpisovanje zahteve prek kontrolne vsote |
+| `DevinCliExecutor`        | Devin CLI                                                                                                                                                  | premostitev življenjskega cikla nalog Devin prek modula agenta v oblaku            |
+| `GithubExecutor`          | GitHub Copilot                                                                                                                                             | Osvežitev žetona Copilot, glave, ki posnemajo kodo VSCode                          |
+| `GitlabExecutor`          | GitLab Duo                                                                                                                                                 | GitLab OAuth + usmerjanje v obsegu projekta                                        |
+| `GlmExecutor`             | Z.AI GLM (vključno s prednastavitvijo `glmt` )                                                                                                             | Razmišljanje o proračunu, prednastavljene konstante GLMT                           |
+| `GrokWebExecutor`         | xAI Grok splet                                                                                                                                             | Obratna spletna seja, izbira načina (think/standard)                               |
+| `KieExecutor`             | KIE                                                                                                                                                        | Izdaja žetonov po meri z vrtljivimi sidrišči seje                                  |
+| `KiroExecutor`            | AWS CodeWhisperer/Kiro                                                                                                                                     | AWS EventStream dvojiški format → SSE pretvorba                                    |
+| `MuseSparkWebExecutor`    | Muse Spark (splet)                                                                                                                                         | Obratna spletna seja s premostitvijo slike in sporočila                            |
+| `NlpCloudExecutor`        | NLP Cloud                                                                                                                                                  | Oblika telesa zahteve, specifična za ponudnika                                     |
+| `OpenCodeExecutor`        | OpenCode                                                                                                                                                   | AI nastavitev združljivega ponudnika SDK                                           |
+| `PerplexityWebExecutor`   | Splet zmede                                                                                                                                                | Obrnitev spletne seje za nadaljevanje klepeta                                      |
+| `PetalsExecutor`          | Porazdeljeno sklepanje o cvetnih lističih                                                                                                                  | Decentralizirano usmerjanje rojev                                                  |
+| `PollinationsExecutor`    | Opraševanje AI                                                                                                                                             | Ključ API ni potreben, zahteve so omejene na hitrost                               |
+| `QoderExecutor`           | Qoder AI                                                                                                                                                   | podpora PAT in OAuth, brezplačna stopnja za več modelov                            |
+| `VertexExecutor`          | Google Vertex AI                                                                                                                                           | Preverjanje storitvenega računa, končne točke na podlagi regije                    |
+| `DevinDesktopExecutor`    | Devin namizje                                                                                                                                              | Uvožen ključ API + Connect-protobuf pretakanje klepeta                             |
 
-Vsi drugi ponudniki (vključno z združljivimi vozlišči po meri) uporabljajo `DefaultExecutor`.
+Vsi drugi ponudniki (vključno z vozlišči, združljivimi po meri) uporabljajo `DefaultExecutor`.
+
+### Avtomatizirane sonde in računi spletnih sej
+
+Testi modelov, preizkusi vse, kombinirani testi in ocene pošiljajo resnične zahteve za klepet. Ponudnik spletne seje deluje kot prijavljeni uporabnik, zato bi bila vsaka od teh zahtev shranjena kot pogovor v tem računu; avtomatizirane sonde, ki so zapustile takšne pogovore, so dobile račun začasno ukinjen (#14780). Cevovod za klepet torej zavrne vsak cilj, ki ga doseže avtomatizirana sonda in katerega ponudnik prevzame poverilnico spletne seje, ko je ciljni ponudnik razrešen in preden je izbrana poverilnica (`src/lib/providers/chatProbePolicy.ts`). Zavrnitev je `422` z `error.code` `chat_probe_not_isolated` in izvajalci sonde to poročajo kot preskok, ne kot napako.
+
+Izvajalec, ki zažene vsak klepet v ponudnikovem lastnem načinu brez zgodovine, ga prijavi z `ChatProbeIsolatingExecutor` (`open-sse/executors/chatProbeIsolation.ts`); nato so sonde do tega ponudnika dovoljene. ChatGPT Web navaja `temporary-chat`. S preizkusom pripnite deklaracijo na njen mehanizem, tako da trditev ne more preživeti kode, ki jo naredi resnično.
 
 ## Matrika združljivosti ponudnikov
 
@@ -1056,11 +1052,11 @@ združljivosti s starejšimi različicami. Trenutna izvajalna pogodba uporablja:
 - migracije sheme SQLite in kavlji za samodejno nadgradnjo ob zagonu
 - združljivostna pot za migracijo iz starejšega formata JSON → SQLite
 
-## 6) Zaščita pred SSRF/odhodnimi URL-ji
+## 6) SSRF / Izhodni URL Guard
 
-- `src/shared/network/outboundUrlGuard.ts` blokira vse zasebne, povratne in lokalne ciljne URL-je, preden dosežejo izvajalnike ponudnikov
-- poti za odkrivanje in preverjanje modelov ponudnikov uporabljajo `src/shared/network/safeOutboundFetch.ts`, ki pred vsako odhodno zahtevo uporabi zaščito
-- napake zaščite se prikažejo kot `URL_GUARD_BLOCKED` s HTTP 422 in se prek `providerAudit.ts` zabeležijo v revizijsko sled skladnosti
+- `BaseExecutor.assertOutboundUrlAllowed` (`open-sse/executors/base.ts`) uporablja `src/shared/network/outboundUrlGuard.ts` za zahteve za klepet, poslane prek `BaseExecutor.execute()`. V načinu samo za javnost (`OMNIROUTE_ALLOW_LOCAL_PROVIDER_URLS=false` z izklopljeno zasebno zastavico) blokira zasebne gostitelje in gostitelje povratne zanke ter 169.254.0.0/16; v vsakem drugem načinu blokira gostitelje metapodatkov v oblaku. Pred vsakim iskanjem DNS preveri ime gostitelja ali literal IP, kot je napisan. Vgrajeni lokalni ponudniki ga preskočijo.
+- Poti odkrivanja in potrjevanja modela ponudnika uporabljajo `src/shared/network/safeOutboundFetch.ts`, ki uporabi zaščito pred vsako odhodno zahtevo
+- Guard napake se pojavljajo kot `URL_GUARD_BLOCKED` z HTTP 503 (`getSafeOutboundFetchErrorStatus`; pot odkrivanja modela vrne 400), pristni bloki SSRF med preverjanjem pa se beležijo v revizijsko sled kot dogodki `provider.validation.ssrf_blocked`
 
 ## Opazljivost in operativni signali
 

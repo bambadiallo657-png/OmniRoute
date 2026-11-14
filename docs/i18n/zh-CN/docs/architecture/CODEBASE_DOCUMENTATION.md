@@ -4,7 +4,11 @@
 
 ---
 
-> OmniRoute 代码库工程参考文档，面向贡献者和集成开发者。
+> **版本：** v3.8.51**最后更新：** 2026-06-28**观众：**工程师为OmniRoute做出贡献或在其之上构建集成。
+>
+> 有关高级架构图和每个子系统背后的推理，请阅读[ARCHITECTURE.md](./ARCHITECTURE.md) 。要深入了解各个子系统（自动组合、 MCP服务器、 A2A服务器、技能、内存、云代理、弹性、压缩等），请参阅此`docs/`目录中的专用文件。
+
+该文件描述了**今天存储库中存在什么**这样新工程师就可以浏览树，了解运行时分层，并知道在哪里添加代码，而无需发明新模块。
 
 ---
 
@@ -445,7 +449,7 @@ open-sse/
 ├── types.d.ts
 ├── config/                 Provider registries, header profiles, identity, …
 ├── handlers/               Request handlers (chat, embeddings, audio, image, …)
-├── executors/              159 provider executor modules (executor classes + per-provider helpers)
+├── executors/              170 provider executor modules (executor classes + per-provider helpers)
 ├── translator/             Format conversion (OpenAI ↔ Claude ↔ Gemini ↔ Cursor ↔ Kiro)
 ├── transformer/            Responses API ↔ Chat Completions stream transformer
 ├── services/               80+ service modules (combos, fallback, quotas, identity, …)
@@ -475,11 +479,11 @@ open-sse/
 
 ### 4.2 `open-sse/executors/`
 
-159 个顶级执行器模块（`*.ts`减去`base.ts`、 `index.ts`并测试—计数`npm run check:docs-counts`测量值）。每个执行器类直接或通过`DefaultExecutor`或另一个执行器扩展`BaseExecutor` (`base.ts`)；其余模块是每个提供者的帮助程序（工具模式、 fetch/TTS适配器、怪异处理程序）。执行者包括：
+170 个顶级执行器模块（`*.ts`减去`base.ts`、 `index.ts`并测试—计数`npm run check:docs-counts`测量值）。每个执行器类直接或通过`DefaultExecutor`或另一个执行器扩展`BaseExecutor` (`base.ts`)；其余模块是每个提供者的帮助程序（工具模式、 fetch/TTS适配器、怪异处理程序）。执行者包括：
 
 `antigravity`、 `azure-openai`、 `blackbox-web`、 `cliproxyapi`、 `chatgpt-web-codex`、 `cloudflare-ai`、 `codex`、 `commandCode`、 `cursor`、 `default`、 `devin-cli`、 `muse-spark-web`、 `nlpcloud`、 `opencode`、 `perplexity-web`、 `petals`、 `pollinations`、 `qoder`、 `vertex`、 `devin-desktop`，加上`claudeIdentity.ts` （共享身份助手）和`index.ts` （注册表）。
 
-> 注意：此处未列出的提供者由`default.ts`使用通用 OpenAI 兼容执行器提供服务。完整的提供者目录（381 个提供者）位于`src/shared/constants/providers.ts`中。
+> 注意：此处未列出的提供者由`default.ts`使用通用 OpenAI 兼容执行器提供服务。完整的提供者目录（393 个提供者）位于`src/shared/constants/providers.ts`中。
 
 ### 4.3 `open-sse/translator/`
 
@@ -501,7 +505,7 @@ open-sse/
 
 | 忧虑           | 文件                                                                                                                                                                                                                                                     |
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 组合路由       | `combo.ts` (20 种策略), `comboConfig.ts`, `comboMetrics.ts`, `comboManifestMetrics.ts`, `comboAgentMiddleware.ts`                                                                                                                                        |
+| 组合路由       | `combo.ts` (21 种策略), `comboConfig.ts`, `comboMetrics.ts`, `comboManifestMetrics.ts`, `comboAgentMiddleware.ts`                                                                                                                                        |
 | 汽车组合发动机 | `autoCombo/` — `engine.ts`, `scoring.ts`, `taskFitness.ts`, `virtualFactory.ts`, `modePacks.ts`, `autoPrefix.ts`, `persistence.ts`, `providerDiversity.ts`, `providerRegistryAccessor.ts`, `routerStrategy.ts`, `selfHealing.ts`, `index.ts`             |
 | 弹力           | `accountFallback.ts` (冷却+锁定), `errorClassifier.ts`, `requestRejectedStreak.ts`, `emergencyFallback.ts`, `rateLimitManager.ts`, `rateLimitSemaphore.ts`, `accountSemaphore.ts`, `accountSelector.ts`                                                  |
 | 配额           | `quotaMonitor.ts`, `quotaPreflight.ts`, `bailianQuotaFetcher.ts`, `codexQuotaFetcher.ts`, `deepseekQuotaFetcher.ts`, `openrouterQuotaFetcher.ts`, `openrouterFreeWindow.ts`, `llmgatewayQuotaFetcher.ts`, `crofUsageFetcher.ts`, `antigravityCredits.ts` |
@@ -588,28 +592,28 @@ bin/
 
 ## 7. `tests/`
 
-| 目录                                                 | 类型                                                                              |
-| ---------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `tests/unit/`                                        | Node 原生测试运行器的单元测试（1821 个文件，含 `api/`、`auth/`、`authz/` 子目录） |
-| `tests/integration/`                                 | 跨模块 + DB 状态测试                                                              |
-| `tests/e2e/`                                         | Playwright UI 测试                                                                |
-| `tests/protocols-e2e/`                               | MCP/A2A 协议端到端                                                                |
-| `tests/translator/`                                  | 翻译器专用测试                                                                    |
-| `tests/security/`                                    | 安全回归测试                                                                      |
-| `tests/load/`                                        | 负载 / 压力测试                                                                   |
-| `tests/golden-set/`                                  | 翻译器回归参考输出                                                                |
-| `tests/helpers/`、`tests/fixtures/`、`tests/manual/` | 支撑                                                                              |
+| 目录                                                 | 类型                                                                                         |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `tests/unit/`                                        | 通过 Node 本机测试运行程序进行单元测试（1821 个文件，加上`api/`、 `auth/`、 `authz/`子目录） |
+| `tests/integration/`                                 | 跨模块+ DB 状态测试                                                                          |
+| `tests/e2e/`                                         | Playwright UI测试                                                                            |
+| `tests/e2e/protocol-clients.test.ts`                 | MCP/A2A协议e2e                                                                               |
+| `tests/translator/`                                  | 特定于译者的测试                                                                             |
+| `tests/security/`                                    | 安全回归                                                                                     |
+| `tests/load/`                                        | 负载/压力测试                                                                                |
+| `tests/golden-set/`                                  | 翻译器回归的参考输出                                                                         |
+| `tests/helpers/`, `tests/fixtures/`, `tests/manual/` | 支持                                                                                         |
 
 常用命令：
 
-| 命令                                                     | 运行内容                                                |
-| -------------------------------------------------------- | ------------------------------------------------------- |
-| `npm run test:unit`                                      | `tests/unit/*.test.ts` 全部（Node 测试运行器，并发 10） |
-| `npm run test:vitest`                                    | Vitest 套件（MCP、autoCombo、缓存）                     |
-| `npm run test:e2e`                                       | Playwright UI 套件                                      |
-| `npm run test:protocols:e2e`                             | MCP + A2A 协议端到端                                    |
-| `npm run test:coverage`                                  | 覆盖率门槛（行/语句/函数/分支 ≥ 60%）                   |
-| `node --import tsx/esm --test tests/unit/<file>.test.ts` | 单文件运行                                              |
+| 命令                                                     | 它运行什么                                                  |
+| -------------------------------------------------------- | ----------------------------------------------------------- |
+| `npm run test:unit`                                      | 所有`tests/unit/*.test.ts`通过 Node 测试运行器（并发度 10） |
+| `npm run test:vitest`                                    | Vitest套件（MCP、 autoCombo、缓存）                         |
+| `npm run test:e2e`                                       | Playwright UI套件                                           |
+| `npm run test:protocols:e2e`                             | MCP + A2A协议 e2e                                           |
+| `npm run test:coverage`                                  | 覆盖范围门 (≥ 60% lines/statements/functions/branches)      |
+| `node --import tsx/esm --test tests/unit/<file>.test.ts` | 单文件运行                                                  |
 
 ---
 
@@ -686,79 +690,76 @@ bin/
 
 ---
 
-## 10. 贡献指南
+## 10. 如何贡献
 
-### 添加新服务商
+### 添加新的提供者
 
-1. 在 `src/shared/constants/providers.ts` 中注册（加载时 Zod 校验）。
-2. 若需自定义逻辑，在 `open-sse/executors/` 中添加执行器（扩展 `BaseExecutor`）。
-3. 若不使用 OpenAI 格式，在 `open-sse/translator/` 中添加翻译器。
-4. 若基于 OAuth，在 `src/lib/oauth/providers/` 和 `src/lib/oauth/services/` 下添加配置。
-5. 在 `open-sse/config/providerRegistry.ts`（或 `open-sse/config/` 下按格式的注册表）中注册模型。
-6. 在 `tests/unit/` 下编写测试。
+1. 在`src/shared/constants/providers.ts`中注册（加载时经过 Zod 验证）。
+2. 如果需要自定义逻辑，请在`open-sse/executors/`中添加执行器（扩展`BaseExecutor`）。
+3. Add a translator in `open-sse/translator/` if it does not speak OpenAI format.
+4. 如果基于 OAuth，请在`src/lib/oauth/providers/`和`src/lib/oauth/services/`下添加配置。
+5. 在`open-sse/config/providerRegistry.ts`中注册模型（或`open-sse/config/`下的特定于格式的注册表）。
+6. 在`tests/unit/`下编写测试。
 
-### 添加新 API 路由
+### 添加新的API路线
 
-1. 创建 `src/app/api/your-route/route.ts`。
-2. 遵循模式：CORS → Zod 请求体验证 → 认证 → 处理器委托。
-3. 若是新请求格式：在 `src/shared/validation/schemas.ts` 中添加 Zod Schema。
-4. 仅管理端点：将路径添加到 `src/shared/constants/publicApiRoutes.ts`（公开 API 层拒绝名单）。
-5. 在 `tests/unit/` 下添加测试。
-6. 更新 `docs/reference/API_REFERENCE.md` 和 `docs/openapi.yaml`。
+1. 创建`src/app/api/your-route/route.ts`。
+2. 遵循以下模式： CORS → Zod主体验证→ auth →处理程序委托。
+3. 如果有新的请求形状：在`src/shared/validation/schemas.ts`中添加Zod模式。
+4. 如果仅管理：添加`src/shared/constants/publicApiRoutes.ts`的路径（公共API表面的拒绝列表）。
+5. 在`tests/unit/`下添加测试。
+6. 更新`docs/reference/API_REFERENCE.md`和`docs/openapi.yaml`。
 
-### 添加新 DB 模块
+### 添加新的DB模块
 
-1. 创建 `src/lib/db/yourModule.ts`，从 `./core.ts` 导入 `getDbInstance()`。
-2. 导出你领域的 CRUD 函数。
-3. 若需新表：在 `src/lib/db/migrations/` 下添加迁移文件，按序编号，幂等、事务性。
-4. 从 `src/lib/localDb.ts` 重新导出（仅限重新导出 — **无逻辑**）。
-5. 在 `tests/unit/` 下添加测试。
+1. 创建`src/lib/db/yourModule.ts`并从`./core.ts`导入`getDbInstance()` 。
+2. 为您的域导出CRUD函数。
+3. 如果是新表：在`src/lib/db/migrations/`下添加迁移，按顺序编号，幂等，事务性。
+4. 进口商使用从`@/lib/db/yourModule`直接进口（没有桶—旧的`localDb.ts`再出口层已被删除）。
+5. 在`tests/unit/`下添加测试。
 
-### 添加新 MCP 工具
+### 添加新的MCP工具
 
-1. 在 `open-sse/mcp-server/tools/` 下添加工具定义（或扩展 `open-sse/mcp-server/schemas/tools.ts`）。
-2. 在 `src/shared/constants/mcpScopes.ts` 中分配适当的权限域。
-3. 在 `open-sse/mcp-server/server.ts` 中注册该工具。
-4. 在 `open-sse/mcp-server/__tests__/` 下添加测试。
-5. 更新 [MCP-SERVER.md](../frameworks/MCP-SERVER.md)。
+1. 在`open-sse/mcp-server/tools/`下添加工具定义（或扩展`open-sse/mcp-server/schemas/tools.ts`）。
+2. 在`src/shared/constants/mcpScopes.ts`中分配适当的范围。
+3. 在`open-sse/mcp-server/server.ts`中注册该工具。
+4. 在`open-sse/mcp-server/__tests__/`下添加测试。
+5. 更新[MCP-SERVER.md](../frameworks/MCP-SERVER.md).
 
-### 添加新 A2A 技能
+### 添加新的A2A技能
 
-参见 [A2A-SERVER.md § 添加新技能](../frameworks/A2A-SERVER.md)。技能位于 `src/lib/a2a/skills/`，通过 A2A 任务管理器注册。
-
----
-
-## 11. 约定
-
-- **代码风格**：2 空格缩进，双引号，100 字符宽度，强制分号，
-  `es5` 尾逗号 — 由 Prettier 通过 `lint-staged` 强制执行。
-- **导入**：外部 → 内部（`@/`、`@omniroute/open-sse`）→ 相对路径。
-- **命名**：文件 `camelCase` 或 `kebab-case`，组件 `PascalCase`，
-  常量 `UPPER_SNAKE`。
-- **ESLint**：`no-eval`、`no-implied-eval`、`no-new-func` = 全局 `error`；
-  `no-explicit-any` = `open-sse/` 和 `tests/` 中 `warn`，其他位置 `error`。
-- **TypeScript**：`strict: false`（历史遗留）。跨模块边界优先显式类型而非类型推断。
-- **数据库**：切勿在路由或处理器中直接写 SQL — 始终通过 `src/lib/db/` 模块。切勿向 `src/lib/localDb.ts` 添加逻辑。
-- **错误处理**：try/catch 使用具体错误类型，以 pino 上下文记录日志。切勿在 SSE 流中静默吞噬错误；使用 abort signal 进行清理。
-- **安全**：切勿使用 `eval()` / `new Function()` / 隐式 eval。所有输入以 Zod 校验。凭据使用 AES-256-GCM 静态加密。保持 `src/shared/constants/upstreamHeaders.ts` 拒绝名单与清洗/校验层对齐。
-- **提交**：Conventional Commits — `feat(scope): subject`。允许的 scope：`db`、`sse`、`oauth`、`dashboard`、`api`、`cli`、`docker`、`ci`、`mcp`、`a2a`、`memory`、`skills`。
-- **分支**：前缀 `feat/`、`fix/`、`refactor/`、`docs/`、`test/`、
-  `chore/`。切勿直接提交到 `main`。
-- **Husky**：pre-commit 运行 `lint-staged` + `check:docs-sync` + `check:any-budget:t11`；pre-push 运行 `check:any-budget:t11` + `check:tracked-artifacts`（快速门禁；不含 `test:unit`）。
+请参阅[A2A-SERVER.md § 添加新技能](../frameworks/A2A-SERVER.md)。技能存在于`src/lib/a2a/skills/`中并通过A2A任务管理器注册。
 
 ---
 
-## 12. 硬规则（来自 CLAUDE.md）
+## 11. 惯例
 
-1. 切勿提交机密或凭据。
-2. 切勿向 `src/lib/localDb.ts` 添加逻辑。
-3. 切勿使用 `eval()` / `new Function()` / 隐式 eval。
-4. 切勿直接提交到 `main`。
-5. 切勿在路由中直接写 SQL — 始终通过 `src/lib/db/` 模块。
-6. 切勿在 SSE 流中静默吞噬错误。
-7. 始终以 Zod Schema 校验输入。
-8. 修改生产代码时始终包含测试。
-9. 覆盖率必须保持 ≥ 60%（语句、行、函数、分支）。
+- **代码风格**：2 个空格缩进、双引号、100 个字符宽度、分号、 `es5`尾随逗号—由Prettier通过`lint-staged`强制执行。
+- **进口**：外部→内部（`@/`， `@omniroute/open-sse`） →相对。
+- **命名**：文件`camelCase`或`kebab-case`，组件`PascalCase`，常量`UPPER_SNAKE`。
+- **ESLint** ： `no-eval`、 `no-implied-eval`、 `no-new-func` = `error`无处不在； `no-explicit-any` = `warn`在`open-sse/`和`tests/`中，其他地方出错。
+- **TypeScript** ： `strict: false` （传统姿势）。对于跨模块边界，更喜欢显式类型而不是推理。
+- **数据库**：永远不要在路由或处理—中编写原始SQL总是通过`src/lib/db/`模块。切勿桶式导入—直接使用特定的`src/lib/db/*`模块。
+- **DB 实体类型 (#3512)** ：写入或读取DB表行形状的函数应该take/return一个以 1:1 比例镜像该表列的命名TS接口，而不是`any`或调用站点的内联匿名类型。将接口放在函数旁边（例如`saveRequestUsage`上方`src/lib/usage/usageHistory.ts`中的`export interface UsageEntry` ），当不同编写者增量填充行时保留各个字段optional/nullable ，并且对于形状因调用者而异的字段，更喜欢`unknown`而不是`any` （在字段上记录，例如`UsageEntry.tokens`接受原始提供者形状的用法和规范化形状）。一旦文件的`any`计数以这种方式达到零，请将其添加到`check:any-budget:t11`白名单（`scripts/check/check-t11-any-budget.mjs`、 `maxAny: 0`），这样它就不会回归。这是第一片约定—更广泛的“无匿名`any`”清理是在代码库的其余部分迭代的。
+- **错误**: try/catch具有特定的错误类型，使用 pino 上下文进行日志。永远不要默默地吞下SSE流中的错误；使用中止信号进行清理。
+- **安全**：永远不要使用`eval()` / `new Function()` / 隐含的 eval。使用Zod验证所有输入。静态加密凭证 (AES-256-GCM)。保持`src/shared/constants/upstreamHeaders.ts`拒绝列表与sanitize/validation层保持一致。
+- **提交**：常规提交— `feat(scope): subject`。允许的范围： `db`、 `sse`、 `oauth`、 `dashboard`、 `api`、 `cli`、 `docker`、 `ci`、 `mcp`、 `a2a`、 `memory`、 `skills`。
+- **分支机构**：前缀`feat/`、 `fix/`、 `refactor/`、 `docs/`、 `test/`、 `chore/`。切勿直接提交给`main`。
+- **沙哑**：预提交运行`lint-staged` + `check:docs-sync` + `check:any-budget:t11`；预推运行`check:any-budget:t11` + `check:tracked-artifacts` （快速门；不包括`test:unit`）。
+
+---
+
+## 12.硬性规则（来自CLAUDE.md）
+
+1. 切勿泄露秘密或凭据。
+2. 切勿直接桶式导入—使用特定的`src/lib/db/*`模块。
+3. 切勿使用`eval()` / `new Function()` / 隐含 eval。
+4. 切勿直接提交给`main`。
+5. 切勿在路由中写入原始SQL —始终经过`src/lib/db/`模块。
+6. 永远不要默默地吞下SSE流中的错误。
+7. 始终使用Zod模式验证输入。
+8. 更改生产代码时始终包含测试。
+9. 覆盖率必须保持≥ 60%（语句、行、函数、分支）。
 
 ---
 

@@ -983,35 +983,24 @@ A CLI a `base_url + /responses` címet WebSocketté alakítja, az OmniRoute pedi
 
 ## Kvóták és problémák jelentése
 
-| Metódus | Elérési út          | Leírás                                                                                               |
-| ------- | ------------------- | ---------------------------------------------------------------------------------------------------- |
-| GET     | `/v1/quotas/check`  | Kvóta előzetes ellenőrzése egy `provider` + `accountId` pároshoz regisztrált kulcs kiadása előtt     |
-| POST    | `/v1/issues/report` | Kvóta- vagy kulcskibocsátási hiba jelentése a GitHub felé (a `GITHUB_ISSUES_REPO` + token szükséges) |
+| Módszer | Útvonal             | Leírás                                                                                       |
+| ------- | ------------------- | -------------------------------------------------------------------------------------------- |
+| GET     | `/v1/quotas/check`  | Regisztrált kulcs kiadása előtt ellenőrizze a `provider` + `accountId` kvótáját              |
+| POST    | `/v1/issues/report` | A quota/key -kibocsátási hiba bejelentése a GitHub ( `GITHUB_ISSUES_REPO` + token szükséges) |
 
-**Hitelesítés:** Bearer API-kulcs (`isAuthenticated`).
+**Auth:** `/v1/quotas/check` egy Bearer API kulcsot (`isAuthenticated`) vesz el. `/v1/issues/report` csak felügyeletre használható (`requireManagementAuth`), mint `/api/v1/registered-keys`: egy műszerfali munkamenet, a helyi CLI token vagy egy API kulcs `manage`/`admin` hatókörrel; A csak következtetést lehetővé tévő API kulcsok `403` kapnak.
 
-### Kvótamunkamenet helyreállítása (opt-in)
+### Kvóta-munkamenet helyreállítása (feliratkozás)
 
-Egy nem streamelt `POST /v1/chat/completions` vagy `POST /v1/responses` kérés, amely
-terminális kvótahibával (`402`/`429`/`503`, amelynek törzse szerint a kvóta vagy a kreditek kimerültek)
-sikertelen, eltárolható és később újrajátszható ahelyett, hogy a hiba visszaadásra kerülne. A hívó
-kérésenként, három fejléc használatával engedélyezheti ezt:
+A nem adatfolyamos `POST /v1/chat/completions` vagy `POST /v1/responses`, amely meghibásodik terminális kvóta hibával (`402`/`429`/`503`, amelynek törzse azt mondja, hogy a kvóta vagy a kreditek kimerültek), leparkolható, és később újrajátszható a hiba visszaadása helyett. A hívó kérésenként három fejléccel jelentkezik:
 
-| Fejléc                       | Érték                                                            |
-| ---------------------------- | ---------------------------------------------------------------- |
-| `x-omniroute-quota-recovery` | `auto`                                                           |
-| `x-omniroute-session`        | munkamenet-azonosító, `[A-Za-z0-9._:-]{1,128}`                   |
-| `x-omniroute-recovery-turn`  | a munkameneten belül egyedi fordulóazonosító (ugyanez a szabály) |
+| Fejléc                       | Érték                                                     |
+| ---------------------------- | --------------------------------------------------------- |
+| `x-omniroute-quota-recovery` | `auto`                                                    |
+| `x-omniroute-session`        | munkamenet azonosítója, `[A-Za-z0-9._:-]{1,128}`          |
+| `x-omniroute-recovery-turn`  | egyedi azonosító a munkameneten belül (ugyanaz a szabály) |
 
-Csak a `stream: false` beállítású, eszközök, eszközelőzmények vagy `previous_response_id` nélküli,
-valamint `x-omniroute-connection`-pin nélküli fordulók jogosultak erre, továbbá a
-`STORAGE_ENCRYPTION_KEY` változónak beállítva kell lennie (a kérés legfeljebb 24 órán át titkosítva
-kerül tárolásra). A válasz ekkor `202`, és tartalmazza a `recovery.poll` értéket; a lekérdezéshez
-használd a `GET /v1/quota-recoveries/{id}` végpontot (`202`, amíg függőben van, `200` a
-helyreállított törzzsel, amikor elkészült), vagy töröld a kérést a `DELETE` használatával. A jegyeket
-csak az őket létrehozó API-kulcs láthatja. Ha egy újrajátszás kimenetele bizonytalan, az
-`needs_confirmation` állapotban zárul, ahelyett hogy a kérés kétszer kerülne elküldésre.
-Forrás: `src/lib/quota/quotaSessionRecovery.ts`.
+Csak a szerszámok, szerszámtörténet vagy `previous_response_id` és `x-omniroute-connection` tű nélküli `stream: false` fordulatok használhatók, és `STORAGE_ENCRYPTION_KEY` be kell állítani (a kérést legfeljebb 24 óráig titkosítva tároljuk). A válasz ekkor `202` és `recovery.poll`; lekérdezés `GET /v1/quota-recoveries/{id}` (`202` függőben , `200` a helyreállított törzstel , ha kész ) vagy törölje `DELETE`-vel . A jegyeket csak az azokat létrehozó API billentyű láthatja. A bizonytalan kimenetelű visszajátszás `needs_confirmation` -ben végződik ahelyett, hogy kétszer elküldené. Forrás: `src/lib/quota/quotaSessionRecovery.ts`.
 
 ---
 
@@ -1762,19 +1751,23 @@ Kimenő webhook-előfizetések az OmniRoute eseményeihez (kérés befejezése, 
 
 ---
 
-## Regisztrált kulcsok (automatikus kezelés)
+## Regisztrált kulcsok (automatikus felügyelet)
 
-Az automatikus kulcskezelő alrendszer használja API-kulcsok kibocsátására és rotálására egy háttérszolgáltató/-fiók ellenében, napi/óránkénti kvótákkal.
+Az automatikus kulcskezelési alrendszer API kulcsok kiadására és elforgatására használja a provider/account háttérrel szemben, daily/hourly kvótákkal.
 
-| Method | Path                                  | Description                                                                                                                                                                                                                   |
-| ------ | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/api/v1/registered-keys`             | Regisztrált kulcsok listázása (csak a maszkolt előtag)                                                                                                                                                                        |
-| POST   | `/api/v1/registered-keys`             | Új regisztrált kulcs kibocsátása — törzs: `{name, provider?, accountId?, idempotencyKey?, expiresAt?, dailyBudget?, hourlyBudget?}`. A nyers kulcsot **egyszer** adja vissza. Kvótaelutasítás esetén `429` értéket ad vissza. |
-| GET    | `/api/v1/registered-keys/[id]`        | Egy regisztrált kulcs metaadatainak lekérése (nyers kulcsanyag nélkül)                                                                                                                                                        |
-| DELETE | `/api/v1/registered-keys/[id]`        | Regisztrált kulcs visszavonása                                                                                                                                                                                                |
-| POST   | `/api/v1/registered-keys/[id]/revoke` | Explicit visszavonási végpont (ugyanaz a hatása, mint a DELETE-nek)                                                                                                                                                           |
+| Módszer | Útvonal                               | Leírás                                                                                                                                                                                                                          |
+| ------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET     | `/api/v1/registered-keys`             | Regisztrált kulcsok listázása (csak maszkolt előtag)                                                                                                                                                                            |
+| POST    | `/api/v1/registered-keys`             | Adjon ki egy új regisztrált kulcsot, — törzset: `{name, provider?, accountId?, idempotencyKey?, expiresAt?, dailyBudget?, hourlyBudget?}`. Visszaadja a nyers kulcsot** egyszer** . A kvóta elutasítása esetén `429` ad vissza. |
+| GET     | `/api/v1/registered-keys/[id]`        | Regisztrált kulcs metaadatainak lekérése (nincs nyersanyag)                                                                                                                                                                     |
+| DELETE  | `/api/v1/registered-keys/[id]`        | Regisztrált kulcs visszavonása                                                                                                                                                                                                  |
+| POST    | `/api/v1/registered-keys/[id]/revoke` | Explicit visszavonási végpont (ugyanaz a hatás, mint DELETE)                                                                                                                                                                    |
+| GET     | `/api/v1/providers/[provider]/limits` | Olvassa el a szolgáltató kibocsátási felső határait                                                                                                                                                                             |
+| PUT     | `/api/v1/providers/[provider]/limits` | Állítsa be a szolgáltató kibocsátási felső határait — törzs: `{maxActiveKeys?, dailyIssueLimit?, hourlyIssueLimit?}`                                                                                                            |
+| GET     | `/api/v1/accounts/[id]/limits`        | Olvassa el a számla kibocsátási felső határát                                                                                                                                                                                   |
+| PUT     | `/api/v1/accounts/[id]/limits`        | Állítsa be a fiók kibocsátási felső határát a szolgáltató útvonalával megegyező —                                                                                                                                               |
 
-**Hitelesítés:** kezelési munkamenet/API-kulcs (`requireManagementAuth`) — ugyanaz az ellenőrzés, mint a `/api/keys` esetében: dashboard-munkamenet, helyi CLI-token vagy `manage`/`admin` hatókörrel rendelkező API-kulcs; csak következtetésre használható API-kulcsok `403` hibát kapnak. Lásd még: `/v1/quotas/check` és `/v1/issues/report`.
+**Auth:** kezelési session/API kulcs (`requireManagementAuth`) — ugyanaz a védelem, mint `/api/keys`: egy műszerfali munkamenet, a helyi CLI token vagy egy API kulcs `manage`/`admin` hatókörrel; A csak következtetést lehetővé tévő API kulcsok `403` kapnak. Lásd még: `/v1/quotas/check` és `/v1/issues/report`.
 
 ---
 
@@ -1896,25 +1889,25 @@ Tartós beszélgetési/tényalapú memóriatároló, API-kulcsonként / munkamen
 
 ---
 
-## MCP-kiszolgáló
+## MCP szerver
 
-Az OmniRoute beágyazott Model Context Protocol-kiszolgálót biztosít 3 átviteli móddal (stdio, SSE, streamable-http) és korlátozott hatókörű eszközökkel. Az alábbi irányítópult-végpontok állapot- és auditadatokat olvasnak, valamint proxyt biztosítanak a HTTP-átvitelekhez.
+OmniRoute egy beágyazott Model Context Protocol szervert szállít 3 átvitellel (stdio, SSE, streamable-http) és hatókörű eszközökkel. Az alábbi irányítópult-végpontok olvassák status/audit adatokat, és proxyként használják a HTTP átviteleket.
 
-| Metódus | Útvonal                | Leírás                                                                                                                       |                      |
-| ------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------- | -------------------- |
-| GET     | `/api/mcp/status`      | Életjel, átviteli mód, online állapot, utolsó hívás, leggyakrabban használt eszközök, 24 órás sikerességi arány              |
-| GET     | `/api/mcp/tools`       | MCP-eszközök listája `name`, `description`, `scopes`, `phase`, `auditLevel`, `sourceEndpoints` mezőkkel                      |
-| GET     | `/api/mcp/sse`         | SSE-stream megnyitása az SSE-átvitelhez (`503` értéket ad vissza, ha az MCP le van tiltva, vagy az átviteli mód nem egyezik) |
-| POST    | `/api/mcp/sse`         | JSON-RPC-keret küldése az SSE-átvitelen                                                                                      |
-| GET     | `/api/mcp/stream`      | Az SSE-oldal megnyitása a Streamable HTTP-átvitelhez (a kiszolgáló által kezdeményezett üzenetekhez)                         |
-| POST    | `/api/mcp/stream`      | JSON-RPC-keret küldése a Streamable HTTP-átvitelen                                                                           |
-| DELETE  | `/api/mcp/stream`      | Streamable HTTP-munkamenet befejezése                                                                                        |
-| GET     | `/api/mcp/audit`       | Auditnapló lekérdezése — `?limit=`, `?offset=`, `?tool=`, `?success=true                                                     | false`, `?apiKeyId=` |
-| GET     | `/api/mcp/audit/stats` | Összesített auditstatisztikák (összesítés, sikerességi arány, átlagos időtartam, leggyakrabban használt eszközök)            |
+| Módszer | Útvonal | Leírás |
+| ------ | ---------------------- | ------------------------------------------------------------------------------------------------ | -------------------- |
+| GET | `/api/mcp/status` | Szívverés, közlekedés, online állapot, utolsó hívás, legjobb eszközök, 24 órás sikerarány |
+| GET | `/api/mcp/tools` | MCP eszközök listája a következőkkel: `name`, `description`, `scopes`, `phase`, `auditLevel`, `sourceEndpoints` |
+| GET | `/api/mcp/sse` | Nyissa meg SSE adatfolyamot a SSE átvitelhez ( `503` adja vissza, ha MCP le van tiltva vagy a szállítás nem egyezik) |
+| POST | `/api/mcp/sse` | JSON-RPC keret küldése a SSE szállításon |
+| GET | `/api/mcp/stream` | A Streamable HTTP szállítás SSE oldalának megnyitása (szerver által kezdeményezett üzenetek) |
+| POST | `/api/mcp/stream` | JSON-RPC keret küldése a Streamable HTTP szállításon |
+| DELETE | `/api/mcp/stream` | Fejezze be a Streamable HTTP munkamenetet |
+| GET | `/api/mcp/audit` | Auditnapló lekérdezése — `?limit=`, `?offset=`, `?tool=`, `?success=true                                | false`, `?apiKeyId=` |
+| GET | `/api/mcp/audit/stats` | Összesített ellenőrzési statisztikák (összesítés, sikerességi arány, átlagos időtartam, legnépszerűbb eszközök) |
 
-**Hitelesítés:** az `sse`/`stream` átviteli módok az MCP-specifikus hitelesítési felületet használják (Bearer API-kulcs `mcp` hatókörrel); a `status`/`tools`/`audit*` útvonalak az irányítópultról olvashatók (az irányítópult gazdagépének elérésén túl nincs szükség további hitelesítésre).
+**Auth:** a `sse`/`stream` átvitelek tiszteletben tartják az MCP-specifikus hitelesítési felületet ( API hordozó kulcs `mcp` hatókörrel); a `status`/`tools`/`audit*` útvonalak az irányítópultról olvashatók (nincs szükség további hitelesítésre az irányítópult gazdagép elérésén túl).
 
-> Mindkét HTTP-átviteli módot a `settings.mcpEnabled` és a `settings.mcpTransport` szabályozza — az átviteli mód eltérése `400` értéket ad vissza, letiltott MCP-állapot esetén pedig `503` értéket.
+> Mindkét HTTP transzportot `settings.mcpEnabled` és `settings.mcpTransport` — kapuzza. A szállítási eltérés `400` adja vissza, a MCP letiltott állapot pedig `503` adja vissza.
 
 ---
 

@@ -458,7 +458,7 @@ open-sse/
 ├── types.d.ts
 ├── config/                 Provider registries, header profiles, identity, …
 ├── handlers/               Request handlers (chat, embeddings, audio, image, …)
-├── executors/              159 provider executor modules (executor classes + per-provider helpers)
+├── executors/              170 provider executor modules (executor classes + per-provider helpers)
 ├── translator/             Format conversion (OpenAI ↔ Claude ↔ Gemini ↔ Cursor ↔ Kiro)
 ├── transformer/            Responses API ↔ Chat Completions stream transformer
 ├── services/               80+ service modules (combos, fallback, quotas, identity, …)
@@ -488,11 +488,11 @@ open-sse/
 
 ### 4.2 `open-sse/executors/`
 
-159 個頂級執行器模組（`*.ts`減去`base.ts`、 `index.ts`並測試—計數`npm run check:docs-counts`測量值）。每個執行器類別直接或透過`DefaultExecutor`或另一個執行器擴展`BaseExecutor` (`base.ts`)；其餘模組是每個提供者的幫助程式（工具模式、 fetch/TTS適配器、怪異處理程序）。執行者包括：
+170 個頂級執行器模組（`*.ts`減去`base.ts`、 `index.ts`並測試—計數`npm run check:docs-counts`測量值）。每個執行器類別直接或透過`DefaultExecutor`或另一個執行器擴展`BaseExecutor` (`base.ts`)；其餘模組是每個提供者的幫助程式（工具模式、 fetch/TTS適配器、怪異處理程序）。執行者包括：
 
 `antigravity`, `azure-openai`, `blackbox-web`, `cliproxyapi`, `chatgpt-web-codex`, `cloudflare-ai`, `codex`, `commandCode`, `cursor`, `default`, `devin-cli`, `muse-spark-web`, `nlpcloud`, `opencode`, `perplexity-web`, `petals`, `pollinations`, `qoder`, `vertex`, `devin-desktop`, plus `claudeIdentity.ts` (shared identity helper) and `index.ts` (registry).
 
-> 注意：此處未列出的提供者由`default.ts`使用通用 OpenAI 相容執行器提供服務。完整的提供者目錄（381 個提供者）位於`src/shared/constants/providers.ts`。
+> 注意：此處未列出的提供者由`default.ts`使用通用 OpenAI 相容執行器提供服務。完整的提供者目錄（393 個提供者）位於`src/shared/constants/providers.ts`。
 
 ### 4.3 `open-sse/translator/`
 
@@ -514,7 +514,7 @@ open-sse/
 
 | 憂慮           | 文件                                                                                                                                                                                                                                                     |
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 組合路由       | `combo.ts` (20 個策略), `comboConfig.ts`, `comboMetrics.ts`, `comboManifestMetrics.ts`, `comboAgentMiddleware.ts`                                                                                                                                        |
+| 組合路由       | `combo.ts` (21 個策略), `comboConfig.ts`, `comboMetrics.ts`, `comboManifestMetrics.ts`, `comboAgentMiddleware.ts`                                                                                                                                        |
 | 汽車組合發動機 | `autoCombo/` — `engine.ts`, `scoring.ts`, `taskFitness.ts`, `virtualFactory.ts`, `modePacks.ts`, `autoPrefix.ts`, `persistence.ts`, `providerDiversity.ts`, `providerRegistryAccessor.ts`, `routerStrategy.ts`, `selfHealing.ts`, `index.ts`             |
 | 彈性           | `accountFallback.ts` (冷卻+鎖定), `errorClassifier.ts`, `requestRejectedStreak.ts`, `emergencyFallback.ts`, `rateLimitManager.ts`, `rateLimitSemaphore.ts`, `accountSemaphore.ts`, `accountSelector.ts`                                                  |
 | 配額           | `quotaMonitor.ts`, `quotaPreflight.ts`, `bailianQuotaFetcher.ts`, `codexQuotaFetcher.ts`, `deepseekQuotaFetcher.ts`, `openrouterQuotaFetcher.ts`, `openrouterFreeWindow.ts`, `llmgatewayQuotaFetcher.ts`, `crofUsageFetcher.ts`, `antigravityCredits.ts` |
@@ -601,28 +601,28 @@ bin/
 
 ## 7. `tests/`
 
-| 目錄                                                 | 類型                                                                                     |
-| ---------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `tests/unit/`                                        | 透過 Node 原生測試執行器的單元測試（1821 個檔案，加上 `api/`、`auth/`、`authz/` 子目錄） |
-| `tests/integration/`                                 | 跨模組 + 資料庫狀態測試                                                                  |
-| `tests/e2e/`                                         | Playwright UI 測試                                                                       |
-| `tests/protocols-e2e/`                               | MCP/A2A 協定 e2e 測試                                                                    |
-| `tests/translator/`                                  | 翻譯器專用測試                                                                           |
-| `tests/security/`                                    | 安全性回歸測試                                                                           |
-| `tests/load/`                                        | 負載/壓力測試                                                                            |
-| `tests/golden-set/`                                  | 翻譯器回歸測試的參考輸出                                                                 |
-| `tests/helpers/`、`tests/fixtures/`、`tests/manual/` | 支援                                                                                     |
+| 目錄                                                 | 類型                                                                                         |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `tests/unit/`                                        | 透過 Node 本機測試運行程式進行單元測試（1821 個文件，加上`api/`、 `auth/`、 `authz/`子目錄） |
+| `tests/integration/`                                 | 跨模組+ DB 狀態測試                                                                          |
+| `tests/e2e/`                                         | Playwright UI測試                                                                            |
+| `tests/e2e/protocol-clients.test.ts`                 | MCP/A2A協定e2e                                                                               |
+| `tests/translator/`                                  | 特定於譯者的測試                                                                             |
+| `tests/security/`                                    | 安全回歸                                                                                     |
+| `tests/load/`                                        | 負載/壓力測試                                                                                |
+| `tests/golden-set/`                                  | 翻譯器回歸的參考輸出                                                                         |
+| `tests/helpers/`, `tests/fixtures/`, `tests/manual/` | 支援                                                                                         |
 
 常用命令：
 
-| 命令                                                     | 執行內容                                                      |
-| -------------------------------------------------------- | ------------------------------------------------------------- |
-| `npm run test:unit`                                      | 所有 `tests/unit/*.test.ts` 透過 Node 測試執行器（並發數 10） |
-| `npm run test:vitest`                                    | Vitest 套件（MCP、autoCombo、快取）                           |
-| `npm run test:e2e`                                       | Playwright UI 套件                                            |
-| `npm run test:protocols:e2e`                             | MCP + A2A 協定 e2e                                            |
-| `npm run test:coverage`                                  | 覆蓋率門檻（≥60% 行/陳述式/函式/分支）                        |
-| `node --import tsx/esm --test tests/unit/<file>.test.ts` | 單一檔案執行                                                  |
+| 命令                                                     | 它運行什麼                                                  |
+| -------------------------------------------------------- | ----------------------------------------------------------- |
+| `npm run test:unit`                                      | 所有`tests/unit/*.test.ts`透過 Node 測試運行器（並發度 10） |
+| `npm run test:vitest`                                    | Vitest套件（MCP、 autoCombo、快取）                         |
+| `npm run test:e2e`                                       | Playwright UI套件                                           |
+| `npm run test:protocols:e2e`                             | MCP + A2A協定 e2e                                           |
+| `npm run test:coverage`                                  | 覆蓋範圍門 (≥ 60% lines/statements/functions/branches)      |
+| `node --import tsx/esm --test tests/unit/<file>.test.ts` | 單一檔案運行                                                |
 
 ---
 
@@ -704,75 +704,74 @@ bin/
 
 ## 10. 如何貢獻
 
-### 新增提供者
+### 新增的提供者
 
-1. 在 `src/shared/constants/providers.ts` 中註冊（載入時以 Zod 驗證）。
-2. 若需要自訂邏輯，在 `open-sse/executors/` 中新增執行器（繼承 `BaseExecutor`）。
-3. 若該提供者不支援 OpenAI 格式，在 `open-sse/translator/` 中新增翻譯器。
-4. 若為 OAuth 基礎，在 `src/lib/oauth/providers/` 和 `src/lib/oauth/services/` 下新增設定。
-5. 在 `open-sse/config/providerRegistry.ts`（或 `open-sse/config/` 下格式專屬的註冊表）中註冊模型。
-6. 在 `tests/unit/` 下撰寫測試。
+1. 在`src/shared/constants/providers.ts`中註冊（載入時經過 Zod 驗證）。
+2. 如果需要自訂邏輯，請在`open-sse/executors/`中新增執行器（擴充`BaseExecutor`）。
+3. Add a translator in `open-sse/translator/` if it does not speak OpenAI format.
+4. 如果基於 OAuth，請在`src/lib/oauth/providers/`和`src/lib/oauth/services/`下方新增配置。
+5. 在`open-sse/config/providerRegistry.ts`中註冊模型（或`open-sse/config/`下的特定於格式的註冊表）。
+6. 在`tests/unit/`下編寫測試。
 
-### 新增 API 路由
+### 新增新的API路線
 
-1. 建立 `src/app/api/your-route/route.ts`。
-2. 遵循模式：CORS → Zod 請求體驗證 → 認證 → 處理器委派。
-3. 若為新的請求形狀：在 `src/shared/validation/schemas.ts` 中新增 Zod 架構。
-4. 若僅限管理：將路徑加入 `src/shared/constants/publicApiRoutes.ts`（公開 API 表面的封鎖清單）。
-5. 在 `tests/unit/` 下新增測試。
-6. 更新 `docs/reference/API_REFERENCE.md` 和 `docs/openapi.yaml`。
+1. 創建`src/app/api/your-route/route.ts`。
+2. 遵循以下模式： CORS → Zod主體驗證→ auth →處理程序委託。
+3. 如果有新的請求形狀：在`src/shared/validation/schemas.ts`中加入Zod模式。
+4. 如果僅管理：新增`src/shared/constants/publicApiRoutes.ts`的路徑（公共API表面的拒絕清單）。
+5. 在`tests/unit/`下加入測試。
+6. 更新`docs/reference/API_REFERENCE.md`和`docs/openapi.yaml`。
 
-### 新增資料庫模組
+### 新增新的DB模組
 
-1. 建立 `src/lib/db/yourModule.ts` 並從 `./core.ts` 匯入 `getDbInstance()`。
-2. 匯出您領域的 CRUD 函式。
-3. 若需新建資料表：在 `src/lib/db/migrations/` 下新增遷移檔案，依序編號、冪等、事務性。
-4. 從 `src/lib/localDb.ts` 重新匯出（僅重新匯出 — **不含邏輯**）。
-5. 在 `tests/unit/` 下新增測試。
+1. 建立`src/lib/db/yourModule.ts`並從`./core.ts`導入`getDbInstance()` 。
+2. 為您的領域匯出CRUD函數。
+3. 如果是新表：在`src/lib/db/migrations/`下方新增遷移，依序編號，冪等，事務性。
+4. 進口商使用從`@/lib/db/yourModule`直接進口（沒有桶—舊的`localDb.ts`再出口層已被刪除）。
+5. 在`tests/unit/`下加入測試。
 
-### 新增 MCP 工具
+### 新增新的MCP工具
 
-1. 在 `open-sse/mcp-server/tools/` 下新增工具定義（或擴充 `open-sse/mcp-server/schemas/tools.ts`）。
-2. 在 `src/shared/constants/mcpScopes.ts` 中指派適當的範圍。
-3. 在 `open-sse/mcp-server/server.ts` 中註冊該工具。
-4. 在 `open-sse/mcp-server/__tests__/` 下新增測試。
-5. 更新 [MCP-SERVER.md](../frameworks/MCP-SERVER.md)。
+1. 在`open-sse/mcp-server/tools/`下方新增工具定義（或擴充`open-sse/mcp-server/schemas/tools.ts`）。
+2. 在`src/shared/constants/mcpScopes.ts`中分配適當的範圍。
+3. 在`open-sse/mcp-server/server.ts`中註冊該工具。
+4. 在`open-sse/mcp-server/__tests__/`下加入測試。
+5. 更新[MCP-SERVER.md](../frameworks/MCP-SERVER.md).
 
-### 新增 A2A 技能
+### 增加新的A2A技能
 
-參見 [A2A-SERVER.md § 新增技能](../frameworks/A2A-SERVER.md)。技能位於
-`src/lib/a2a/skills/`，並透過 A2A 任務管理器註冊。
+請參閱[A2A-SERVER.md § 新增技能](../frameworks/A2A-SERVER.md)。技能存在於`src/lib/a2a/skills/`中並透過A2A任務管理器註冊。
 
 ---
 
 ## 11. 慣例
 
-- **程式碼風格**：2 空格縮排、雙引號、100 字元寬度、分號、`es5` 結尾逗號 — 由 Prettier 透過 `lint-staged` 強制執行。
-- **匯入順序**：外部 → 內部（`@/`、`@omniroute/open-sse`）→ 相對。
-- **命名**：檔案 `camelCase` 或 `kebab-case`，元件 `PascalCase`，常數 `UPPER_SNAKE`。
-- **ESLint**：`no-eval`、`no-implied-eval`、`no-new-func` = `error` 適用於所有地方；`no-explicit-any` = `warn` 在 `open-sse/` 和 `tests/` 中，其他位置為 error。
-- **TypeScript**：`strict: false`（舊有設定）。在跨模組邊界處優先使用明確型別而非推斷。
-- **資料庫**：切勿在路由或處理器中撰寫原始 SQL — 務必透過 `src/lib/db/` 模組操作。切勿在 `src/lib/localDb.ts` 中新增邏輯。
-- **資料庫實體型別（#3512）**：一個寫入或讀取資料表列形狀的函式，應接收/回傳一個與該資料表欄位 1:1 對應的命名 TS 介面，而非 `any` 或呼叫處的內聯匿名型別。將該介面置於函式旁邊（例如將 `export interface UsageEntry` 放在 `src/lib/usage/usageHistory.ts` 中 `saveRequestUsage` 之上），在不同寫入者逐步填充該列時，將個別欄位保持為可選/可為 null，並對在不同呼叫者間形狀各異的欄位優先使用 `unknown` 而非 `any`（在欄位上註明，例如 `UsageEntry.tokens` 接受原始提供者形狀的用量和正規化後的形狀）。一旦某個檔案的 `any` 計數以此方式歸零，將其加入 `check:any-budget:t11` 白名單（`scripts/check/check-t11-any-budget.mjs`、`maxAny: 0`），使其不會回歸。這是首批適用的慣例 — 更廣泛的「無匿名 `any`」清理將在其餘程式碼庫中迭代進行。
-- **錯誤處理**：使用特定錯誤型別的 try/catch，以 pino 上下文記錄日誌。切勿在 SSE 串流中默默吞嚥錯誤；使用中止信號進行清理。
-- **安全性**：切勿使用 `eval()` / `new Function()` / 隱含 eval。使用 Zod 驗證所有輸入。加密靜態憑證（AES-256-GCM）。保持 `src/shared/constants/upstreamHeaders.ts` 封鎖清單與清理/驗證層一致。
-- **提交訊息**：約定式提交 — `feat(scope): subject`。允許的範圍：`db`、`sse`、`oauth`、`dashboard`、`api`、`cli`、`docker`、`ci`、`mcp`、`a2a`、`memory`、`skills`。
-- **分支**：前綴 `feat/`、`fix/`、`refactor/`、`docs/`、`test/`、`chore/`。切勿直接提交到 `main`。
-- **Husky**：pre-commit 執行 `lint-staged` + `check:docs-sync` + `check:any-budget:t11`；pre-push 執行 `check:any-budget:t11` + `check:tracked-artifacts`（快速閘道；不包含 `test:unit`）。
+- **程式碼風格**：2 個空格縮排、雙引號、100 個字元寬度、分號、 `es5`尾隨逗號—由Prettier透過`lint-staged`強制執行。
+- **進口**：外部→內部（`@/`， `@omniroute/open-sse`） →相對。
+- **命名**：檔案`camelCase`或`kebab-case`，元件`PascalCase`，常數`UPPER_SNAKE`。
+- **ESLint** ： `no-eval`、 `no-implied-eval`、 `no-new-func` = `error`無所不在； `no-explicit-any` = `warn`在`open-sse/`和`tests/`中，其他地方出錯。
+- **TypeScript** ： `strict: false` （傳統姿勢）。對於跨模組邊界，更喜歡顯式類型而不是推理。
+- **資料庫**：永遠不要在路由或處理—中編寫原始SQL總是透過`src/lib/db/`模組。切勿桶式導入—直接使用特定的`src/lib/db/*`模組。
+- **DB 實體類型 (#3512)** ：寫入或讀取DB表行形狀的函數應該take/return一個以 1:1 比例鏡像該表列的命名TS接口，而不是`any`或呼叫站點的內聯匿名類型。將介面放在函數旁邊（例如`saveRequestUsage`上方`src/lib/usage/usageHistory.ts`中的`export interface UsageEntry` ），當不同編寫者增量填充行時保留各個字段optional/nullable ，並且對於形狀因呼叫者而異的字段，更喜歡`unknown`而不是`any` （在字段上記錄，例如`UsageEntry.tokens`接受原始提供者形狀的用法和規範化形狀）。一旦檔案的`any`計數以這種方式達到零，請將其添加到`check:any-budget:t11`白名單（`scripts/check/check-t11-any-budget.mjs`、 `maxAny: 0`），這樣它就不會回歸。這是第一片約定—更廣泛的「無匿名`any`」清理是在程式碼庫的其餘部分迭代的。
+- **錯誤**: try/catch具有特定的錯誤類型，使用 pino 上下文進行日誌。永遠不要默默地吞下SSE流中的錯誤；使用中止訊號進行清理。
+- **安全**：永遠不要使用`eval()` / `new Function()` / 隱含的 eval。使用Zod驗證所有輸入。靜態加密憑證 (AES-256-GCM)。保持`src/shared/constants/upstreamHeaders.ts`拒絕清單與sanitize/validation層一致。
+- **提交**：常規提交— `feat(scope): subject`。允許的範圍： `db`、 `sse`、 `oauth`、 `dashboard`、 `api`、 `cli`、 `docker`、 `ci`、 `mcp`、 `a2a`、 `memory`、 `skills`。
+- **分公司**：前綴`feat/`、 `fix/`、 `refactor/`、 `docs/`、 `test/`、 `chore/`。切勿直接提交給`main`。
+- **沙啞**：預提交運行`lint-staged` + `check:docs-sync` + `check:any-budget:t11`；預推運行`check:any-budget:t11` + `check:tracked-artifacts` （快速門；不包括`test:unit`）。
 
 ---
 
-## 12. 硬性規則（來自 CLAUDE.md）
+## 12.硬性規則（來自CLAUDE.md）
 
-1. 切勿提交機密或憑證。
-2. 切勿在 `src/lib/localDb.ts` 中新增邏輯。
-3. 切勿使用 `eval()` / `new Function()` / 隱含 eval。
-4. 切勿直接提交到 `main`。
-5. 切勿在路由中撰寫原始 SQL — 務必透過 `src/lib/db/` 模組操作。
-6. 切勿在 SSE 串流中默默吞嚥錯誤。
-7. 務必使用 Zod 架構驗證輸入。
-8. 變更正式環境程式碼時務必包含測試。
-9. 覆蓋率必須保持 ≥ 60%（陳述式、行、函式、分支）。
+1. 切勿洩漏秘密或憑據。
+2. 切勿直接桶式導入—使用特定的`src/lib/db/*`模組。
+3. 切勿使用`eval()` / `new Function()` / 隱含 eval。
+4. 切勿直接提交給`main`。
+5. 切勿在路由中寫入原始SQL —總是經過`src/lib/db/`模組。
+6. 永遠不要默默地吞下SSE流中的錯誤。
+7. 始終使用Zod模式驗證輸入。
+8. 更改生產程式碼時始終包含測試。
+9. 覆蓋率必須保持≥ 60%（語句、行、函數、分支）。
 
 ---
 

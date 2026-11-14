@@ -980,32 +980,24 @@ CLI надограђује `base_url + /responses` на WebSocket, а OmniRoute 
 
 ## Извештавање о квотама и проблемима
 
-| Метод | Путања              | Опис                                                                                          |
-| ----- | ------------------- | --------------------------------------------------------------------------------------------- |
-| GET   | `/v1/quotas/check`  | Претходна валидација квоте за `provider` + `accountId` пре издавања регистрованог кључа       |
-| POST  | `/v1/issues/report` | Пријављивање неуспешног издавања квоте/кључа на GitHub (захтева `GITHUB_ISSUES_REPO` + токен) |
+| Метод | Пут                 | Опис                                                                                     |
+| ----- | ------------------- | ---------------------------------------------------------------------------------------- |
+| GET   | `/v1/quotas/check`  | Претходно проверите квоту за `provider` + `accountId` пре издавања регистрованог кључа   |
+| POST  | `/v1/issues/report` | Пријавите грешку при издавању quota/key за GitHub (захтева `GITHUB_ISSUES_REPO` + токен) |
 
-**Аутентификација:** Bearer API кључ (`isAuthenticated`).
+**Аутх:** `/v1/quotas/check` узима API кључ носиоца (`isAuthenticated`). `/v1/issues/report` је само за управљање (`requireManagementAuth`), као `/api/v1/registered-keys`: сесија контролне табле, локални CLI токен или API кључ са `manage`/`admin` опсегом; API кључеви само за закључивање добијају `403`.
 
-### Опоравак сесије квоте (опционо)
+### Опоравак сесије квоте (омогућавање)
 
-Нестримајући `POST /v1/chat/completions` или `POST /v1/responses` који не успе са
-коначном грешком квоте (`402`/`429`/`503` чије тело наводи да су квота или кредити исцрпљени)
-може бити привремено сачуван и поново покренут касније, уместо да врати грешку. Позивалац укључује ову опцију по захтеву помоћу три заглавља:
+Нестриминг `POST /v1/chat/completions` или `POST /v1/responses` који не успе са грешком терминалне квоте (`402`/`429`/`503` чије тело каже да су квота или кредити исцрпљени) може да се паркира и поново репродукује касније уместо да се грешка врати. Позивалац се укључује по захтеву са три заглавља:
 
-| Заглавље                     | Вредност                                           |
-| ---------------------------- | -------------------------------------------------- |
-| `x-omniroute-quota-recovery` | `auto`                                             |
-| `x-omniroute-session`        | ID сесије, `[A-Za-z0-9._:-]{1,128}`                |
-| `x-omniroute-recovery-turn`  | ID обрта јединствен у оквиру сесије (исто правило) |
+| Хеадер                       | Валуе                                         |
+| ---------------------------- | --------------------------------------------- |
+| `x-omniroute-quota-recovery` | `auto`                                        |
+| `x-omniroute-session`        | ИД сесије, `[A-Za-z0-9._:-]{1,128}`           |
+| `x-omniroute-recovery-turn`  | јединствени ИД у оквиру сесије (исто правило) |
 
-Само обрти са `stream: false`, без алата, историје алата или `previous_response_id`, као и без
-`x-omniroute-connection` закачења, испуњавају услове, а `STORAGE_ENCRYPTION_KEY` мора бити подешен
-(захтев се чува шифрован до 24 часа). Одговор је затим `202` са
-`recovery.poll`; позовите `GET /v1/quota-recoveries/{id}` (`202` док је на чекању, `200` са
-опорављеним телом по завршетку) или откажите помоћу `DELETE`. Картице су видљиве само API
-кључу који их је креирао. Поновно покретање чији је исход неизвестан завршава у стању
-`needs_confirmation` уместо да буде послато два пута. Извор: `src/lib/quota/quotaSessionRecovery.ts`.
+Само `stream: false` окрети без алата, историје алата или `previous_response_id`, и без `x-omniroute-connection` пина, су подобни, а `STORAGE_ENCRYPTION_KEY` мора бити подешен (захтев се чува шифрован до 24 х). Одговор је тада `202` са `recovery.poll`; анкета `GET /v1/quota-recoveries/{id}` (`202` док је на чекању, `200` са пронађеним телом када се заврши) или откажи са `DELETE`. Карте су видљиве само кључу API који их је креирао. Реприза чији је исход неизвестан завршава се у `needs_confirmation` уместо да буде послата двапут. Извор: `src/lib/quota/quotaSessionRecovery.ts`.
 
 ---
 
@@ -1754,19 +1746,23 @@ Odlazne pretplate na vebhukove za OmniRoute događaje (dovršavanje zahteva, isc
 
 ---
 
-## Registrovani ključevi (automatsko upravljanje)
+## Регистровани кључеви (аутоматско управљање)
 
-Koristi ga podsistem za automatsko upravljanje ključevima za izdavanje i rotaciju API ključeva prema pomoćnom provajderu/nalogu, sa dnevnim/satnim kvotama.
+Користи га подсистем за управљање аутоматским кључевима за издавање и ротирање API кључева у односу на позадински provider/account, са daily/hourly квотама.
 
-| Metod  | Putanja                               | Opis                                                                                                                                                                                                        |
-| ------ | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/api/v1/registered-keys`             | Navodi registrovane ključeve (samo maskirani prefiks)                                                                                                                                                       |
-| POST   | `/api/v1/registered-keys`             | Izdaje novi registrovani ključ — telo: `{name, provider?, accountId?, idempotencyKey?, expiresAt?, dailyBudget?, hourlyBudget?}`. Vraća sirovi ključ **samo jednom**. Vraća `429` pri odbijanju zbog kvote. |
-| GET    | `/api/v1/registered-keys/[id]`        | Preuzima metapodatke registrovanog ključa (bez sirovog materijala)                                                                                                                                          |
-| DELETE | `/api/v1/registered-keys/[id]`        | Opoziva registrovani ključ                                                                                                                                                                                  |
-| POST   | `/api/v1/registered-keys/[id]/revoke` | Eksplicitna krajnja tačka za opoziv (isti efekat kao DELETE)                                                                                                                                                |
+| Метод  | Пут                                   | Опис                                                                                                                                                                                                 |
+| ------ | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/v1/registered-keys`             | Листа регистрованих кључева (само маскирани префикс)                                                                                                                                                 |
+| POST   | `/api/v1/registered-keys`             | Издајте нови регистровани кључ — тело: `{name, provider?, accountId?, idempotencyKey?, expiresAt?, dailyBudget?, hourlyBudget?}`. Враћа необрађени кључ** једном** . Враћа `429` при одбијању квоте. |
+| GET    | `/api/v1/registered-keys/[id]`        | Преузми метаподатке регистрованог кључа (без сировог материјала)                                                                                                                                     |
+| DELETE | `/api/v1/registered-keys/[id]`        | Опозовите регистровани кључ                                                                                                                                                                          |
+| POST   | `/api/v1/registered-keys/[id]/revoke` | Експлицитна крајња тачка опозива (исти ефекат као DELETE)                                                                                                                                            |
+| GET    | `/api/v1/providers/[provider]/limits` | Прочитајте ограничења издавања провајдера                                                                                                                                                            |
+| PUT    | `/api/v1/providers/[provider]/limits` | Поставите ограничења издавања провајдера — тело: `{maxActiveKeys?, dailyIssueLimit?, hourlyIssueLimit?}`                                                                                             |
+| GET    | `/api/v1/accounts/[id]/limits`        | Прочитајте ограничења за издавање налога                                                                                                                                                             |
+| PUT    | `/api/v1/accounts/[id]/limits`        | Поставите ограничења за издавање налога — исто тело као и рута провајдера                                                                                                                            |
 
-**Autentifikacija:** sesija/ključ API-ja za upravljanje (`requireManagementAuth`) — ista zaštita kao za `/api/keys`: sesija kontrolne table, lokalni CLI token ili ključ API-ja sa opsegom `manage`/`admin`; API ključevi koji služe samo za inferenciju dobijaju `403`. Pogledajte takođe `/v1/quotas/check` i `/v1/issues/report`.
+**Аутх:** управљање session/API кључ (`requireManagementAuth`) — исти заштитник као `/api/keys`: сесија контролне табле, локални CLI токен или API кључ са `manage`/`admin` опсегом; API кључеви само за закључивање добијају `403`. Такође погледајте `/v1/quotas/check` и `/v1/issues/report`.
 
 ---
 
@@ -1888,25 +1884,25 @@ Trajna memorija konverzacije/činjenica, ograničena na API ključ / sesiju.
 
 ---
 
-## MCP server
+## MCP Сервер
 
-OmniRoute isporučuje ugrađeni server Model Context Protocol-a sa 3 transporta (stdio, SSE, streamable-http) i alatima ograničenim opsegom. Krajnje tačke kontrolne table u nastavku čitaju podatke o statusu i reviziji i prosleđuju HTTP transporte.
+OmniRoute испоручује уграђени сервер Цонтект Протоцол модела са 3 транспорта (стдио, SSE, стреамабле-хттп) и алатима са опсегом. Крајње тачке контролне табле испод читају status/audit податке и замењују HTTP транспорте.
 
-| Metod  | Putanja                | Opis                                                                                                                        | -------------------- |
-| ------ | ---------------------- | --------------------------------------------------------------------------------------------------------------------------- | -------------------- |
-| GET    | `/api/mcp/status`      | Signal potvrde, transport, stanje na mreži, poslednji poziv, najčešće korišćeni alati, stopa uspešnosti u poslednja 24 časa |
-| GET    | `/api/mcp/tools`       | Spisak MCP alata sa `name`, `description`, `scopes`, `phase`, `auditLevel`, `sourceEndpoints`                               |
-| GET    | `/api/mcp/sse`         | Otvaranje SSE toka za SSE transport (vraća `503` ako je MCP onemogućen ili ako se transporti ne podudaraju)                 |
-| POST   | `/api/mcp/sse`         | Slanje JSON-RPC okvira putem SSE transporta                                                                                 |
-| GET    | `/api/mcp/stream`      | Otvaranje SSE strane Streamable HTTP transporta (poruke koje pokreće server)                                                |
-| POST   | `/api/mcp/stream`      | Slanje JSON-RPC okvira putem Streamable HTTP transporta                                                                     |
-| DELETE | `/api/mcp/stream`      | Završavanje Streamable HTTP sesije                                                                                          |
-| GET    | `/api/mcp/audit`       | Upit nad zapisnikom revizije — `?limit=`, `?offset=`, `?tool=`, `?success=true                                              | false`, `?apiKeyId=` |
-| GET    | `/api/mcp/audit/stats` | Objedinjena statistika revizije (ukupan broj, stopa uspešnosti, prosečno trajanje, najčešće korišćeni alati)                |
+| Метод | Пут | Опис |
+| ------ | ---------------------- | ------------------------------------------------------------------------------------------------ | -------------------- |
+| GET | `/api/mcp/status` | Откуцаји срца, транспорт, стање на мрежи, последњи позив, врхунски алати, стопа успеха 24 сата |
+| GET | `/api/mcp/tools` | Листа MCP алата са `name`, `description`, `scopes`, `phase`, `auditLevel`, `sourceEndpoints` |
+| GET | `/api/mcp/sse` | Отвори SSE ток за SSE транспорт (враћа `503` ако је MCP онемогућен или неусклађеност транспорта) |
+| POST | `/api/mcp/sse` | Пошаљите ЈСОН-РПЦ оквир на SSE транспорт |
+| GET | `/api/mcp/stream` | Отворите SSE страну Стреамабле HTTP транспорта (поруке које покреће сервер) |
+| POST | `/api/mcp/stream` | Пошаљите ЈСОН-РПЦ оквир на Стреамабле HTTP транспорт |
+| DELETE | `/api/mcp/stream` | Завршите Стреамабле HTTP сесију |
+| GET | `/api/mcp/audit` | Дневник ревизије упита — `?limit=`, `?offset=`, `?tool=`, `?success=true                                | false`, `?apiKeyId=` |
+| GET | `/api/mcp/audit/stats` | Збирна статистика ревизије (укупни подаци, стопа успеха, просечно трајање, најбољи алати) |
 
-**Autentifikacija:** transporti `sse`/`stream` koriste MCP-specifičnu površinu za autentifikaciju (Bearer API ključ sa opsegom `mcp`); rute `status`/`tools`/`audit*` mogu se čitati sa kontrolne table (nije potrebna dodatna autentifikacija osim pristupa hostu kontrolne table).
+**Аутх:** транспорт `sse`/`stream` поштује површину аутентификације специфичну за МЦП (кључ API носиоца са `mcp` опсегом); руте `status`/`tools`/`audit*` су читљиве са контролне табле (није потребна додатна потврда осим достизања хоста контролне табле).
 
-> Oba HTTP transporta su uslovljena podešavanjima `settings.mcpEnabled` i `settings.mcpTransport` — neusklađenost transporta vraća `400`, a onemogućeno MCP stanje vraća `503`.
+> Оба HTTP транспорта су затворена помоћу `settings.mcpEnabled` и `settings.mcpTransport` — неусклађеност транспорта враћа `400`, MCP онемогућено стање враћа `503`.
 
 ---
 

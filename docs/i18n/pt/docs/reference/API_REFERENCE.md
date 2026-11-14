@@ -930,35 +930,26 @@ A CLI atualiza `base_url + /responses` para um WebSocket e o OmniRoute estabelec
 
 ---
 
-## Relatórios de Quotas e Problemas
+## Relatório de quotas e problemas
 
-| Método | Caminho             | Descrição                                                                                     |
+| Método | Percurso            | Descrição                                                                                     |
 | ------ | ------------------- | --------------------------------------------------------------------------------------------- |
-| GET    | `/v1/quotas/check`  | Pré-validar a quota para um `provider` + `accountId` antes de emitir uma chave registada      |
-| POST   | `/v1/issues/report` | Comunicar uma falha de emissão de quota/chave ao GitHub (requer `GITHUB_ISSUES_REPO` + token) |
+| GET    | `/v1/quotas/check`  | Pré-valide a quota para um `provider` + `accountId` antes de emitir uma chave registada       |
+| POST   | `/v1/issues/report` | Reportar uma falha na emissão do quota/key ao GitHub (requer o token `GITHUB_ISSUES_REPO` + ) |
 
-**Autenticação:** chave de API Bearer (`isAuthenticated`).
+**Autenticação:** `/v1/quotas/check` utiliza uma chave Bearer API (`isAuthenticated`). `/v1/issues/report` é apenas de gestão (`requireManagementAuth`), como por exemplo `/api/v1/registered-keys`: uma sessão de painel, o token CLI local ou uma chave API com âmbito `manage`/`admin` ; chaves API apenas para inferência obtêm `403`.
 
-### Recuperação de sessões de quota (opcional)
+### Recuperação de sessão de quotas (opt-in)
 
-Um `POST /v1/chat/completions` ou `POST /v1/responses` sem streaming que falhe com um erro de quota
-terminal (`402`/`429`/`503` cujo corpo indique que a quota ou os créditos estão esgotados)
-pode ser colocado em espera e repetido mais tarde, em vez de devolver o erro. O chamador activa esta opção por pedido com três cabeçalhos:
+Um `POST /v1/chat/completions` ou `POST /v1/responses` sem streaming que falha com um erro de quota de terminal (`402`/`429`/`503` cujo corpo diz que a quota ou os créditos estão esgotados) pode ser estacionado e reproduzido posteriormente em vez de devolver o erro. O chamador aceita por pedido com três cabeçalhos:
 
 | Cabeçalho                    | Valor                                     |
 | ---------------------------- | ----------------------------------------- |
 | `x-omniroute-quota-recovery` | `auto`                                    |
 | `x-omniroute-session`        | ID da sessão, `[A-Za-z0-9._:-]{1,128}`    |
-| `x-omniroute-recovery-turn`  | ID do turno único na sessão (mesma regra) |
+| `x-omniroute-recovery-turn`  | tornar o id único na sessão (mesma regra) |
 
-Apenas os turnos com `stream: false`, sem ferramentas, histórico de ferramentas ou
-`previous_response_id`, e sem um pin `x-omniroute-connection`, são elegíveis, e
-`STORAGE_ENCRYPTION_KEY` tem de estar definido (o pedido é armazenado de forma encriptada
-durante até 24 h). A resposta é então `202` com
-`recovery.poll`; consulte `GET /v1/quota-recoveries/{id}` (`202` enquanto estiver pendente, `200` com o
-corpo recuperado quando estiver concluído) ou cancele com `DELETE`. Os tickets só são visíveis para a chave
-de API que os criou. Uma repetição cujo resultado seja incerto termina em `needs_confirmation`
-em vez de ser enviada duas vezes. Fonte: `src/lib/quota/quotaSessionRecovery.ts`.
+Apenas as voltas `stream: false` sem ferramentas, histórico de ferramentas ou `previous_response_id` e sem pin `x-omniroute-connection` são elegíveis e `STORAGE_ENCRYPTION_KEY` deve ser definido (o pedido é armazenado encriptado até 24 horas). A resposta é então `202` com `recovery.poll`; poll `GET /v1/quota-recoveries/{id}` (`202` enquanto pendente, `200` com o corpo recuperado quando concluído) ou cancelar com `DELETE`. Os tickets são apenas visíveis para a chave API que os criou. Um replay cujo resultado é incerto termina em `needs_confirmation` em vez de ser enviado duas vezes. Fonte: `src/lib/quota/quotaSessionRecovery.ts`.
 
 ---
 
@@ -1709,17 +1700,21 @@ Subscrições de webhooks de saída para eventos do OmniRoute (conclusão de ped
 
 ## Chaves Registadas (Gestão Automática)
 
-Utilizado pelo subsistema de gestão automática de chaves para emitir e rodar chaves da API relativamente a um fornecedor/conta de suporte, com quotas diárias/horárias.
+Utilizado pelo subsistema de gestão de chaves automáticas para emitir e rodar chaves API contra um suporte provider/account, com cotas daily/hourly.
 
-| Método | Caminho                               | Descrição                                                                                                                                                                                                                  |
-| ------ | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/api/v1/registered-keys`             | Listar chaves registadas (apenas o prefixo ocultado)                                                                                                                                                                       |
-| POST   | `/api/v1/registered-keys`             | Emitir uma nova chave registada — corpo: `{name, provider?, accountId?, idempotencyKey?, expiresAt?, dailyBudget?, hourlyBudget?}`. Devolve a chave em bruto **uma única vez**. Devolve `429` em caso de recusa por quota. |
-| GET    | `/api/v1/registered-keys/[id]`        | Obter os metadados de uma chave registada (sem o material em bruto)                                                                                                                                                        |
-| DELETE | `/api/v1/registered-keys/[id]`        | Revogar uma chave registada                                                                                                                                                                                                |
-| POST   | `/api/v1/registered-keys/[id]/revoke` | Endpoint de revogação explícita (o mesmo efeito que DELETE)                                                                                                                                                                |
+| Método | Percurso                              | Descrição                                                                                                                                                                                                       |
+| ------ | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/v1/registered-keys`             | Listar chaves registadas (apenas prefixo mascarado)                                                                                                                                                             |
+| POST   | `/api/v1/registered-keys`             | Emita uma nova chave registada — body: `{name, provider?, accountId?, idempotencyKey?, expiresAt?, dailyBudget?, hourlyBudget?}`. Retorna a chave bruta** uma vez** . Retorna `429` em caso de recusa de quota. |
+| GET    | `/api/v1/registered-keys/[id]`        | Recuperar os metadados de uma chave registada (sem matéria-prima)                                                                                                                                               |
+| DELETE | `/api/v1/registered-keys/[id]`        | Revogar uma chave registada                                                                                                                                                                                     |
+| POST   | `/api/v1/registered-keys/[id]/revoke` | Endpoint de revogação explícita (mesmo efeito que DELETE)                                                                                                                                                       |
+| GET    | `/api/v1/providers/[provider]/limits` | Leia os limites de emissão do fornecedor                                                                                                                                                                        |
+| PUT    | `/api/v1/providers/[provider]/limits` | Defina os limites de emissão do fornecedor — body: `{maxActiveKeys?, dailyIssueLimit?, hourlyIssueLimit?}`                                                                                                      |
+| GET    | `/api/v1/accounts/[id]/limits`        | Leia os limites de emissão da conta                                                                                                                                                                             |
+| PUT    | `/api/v1/accounts/[id]/limits`        | Defina os limites de emissão da conta — no mesmo corpo da rota do fornecedor                                                                                                                                    |
 
-**Autenticação:** sessão/chave da API de gestão (`requireManagementAuth`) — o mesmo mecanismo de proteção que `/api/keys`: uma sessão do painel, o token local da CLI ou uma chave da API com o âmbito `manage`/`admin`; as chaves da API apenas de inferência recebem `403`. Consulte também `/v1/quotas/check` e `/v1/issues/report`.
+**Autenticação:** gestão session/API key (`requireManagementAuth`) — a mesma proteção que `/api/keys`: uma sessão de painel, o token CLI local ou uma chave API com âmbito `manage`/`admin` ; chaves API apenas para inferência obtêm `403`. Consulte também `/v1/quotas/check` e `/v1/issues/report`.
 
 ---
 
@@ -1839,23 +1834,23 @@ Armazenamento persistente de memória factual/conversacional, com âmbito por ch
 
 ## Servidor MCP
 
-O OmniRoute inclui um servidor incorporado do Model Context Protocol com 3 transportes (stdio, SSE, streamable-http) e ferramentas com âmbito definido. Os endpoints do painel abaixo leem dados de estado/auditoria e atuam como proxy para os transportes HTTP.
+OmniRoute fornece um servidor Model Context Protocol integrado com 3 transportes (stdio, SSE, streamable-http) e ferramentas com âmbito definido. Os endpoints do painel abaixo lêem os dados status/audit e fazem proxy dos transportes HTTP.
 
-| Método | Caminho                | Descrição                                                                                                                      | -------------------- |
-| ------ | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------ | -------------------- |
-| GET    | `/api/mcp/status`      | Heartbeat, transporte, estado online, última chamada, principais ferramentas, taxa de sucesso nas últimas 24 horas             |
-| GET    | `/api/mcp/tools`       | Lista de ferramentas MCP com `name`, `description`, `scopes`, `phase`, `auditLevel`, `sourceEndpoints`                         |
-| GET    | `/api/mcp/sse`         | Abrir fluxo SSE para o transporte SSE (devolve `503` se o MCP estiver desativado ou se houver incompatibilidade de transporte) |
-| POST   | `/api/mcp/sse`         | Enviar frame JSON-RPC através do transporte SSE                                                                                |
-| GET    | `/api/mcp/stream`      | Abrir o lado SSE do transporte Streamable HTTP (mensagens iniciadas pelo servidor)                                             |
-| POST   | `/api/mcp/stream`      | Enviar frame JSON-RPC através do transporte Streamable HTTP                                                                    |
-| DELETE | `/api/mcp/stream`      | Terminar uma sessão Streamable HTTP                                                                                            |
-| GET    | `/api/mcp/audit`       | Consultar o registo de auditoria — `?limit=`, `?offset=`, `?tool=`, `?success=true                                             | false`, `?apiKeyId=` |
-| GET    | `/api/mcp/audit/stats` | Estatísticas agregadas de auditoria (totais, taxa de sucesso, duração média, principais ferramentas)                           |
+| Método | Percurso | Descrição |
+| ------ | ---------------------- | ------------------------------------------------------------------------------------------------ | -------------------- |
+| GET | `/api/mcp/status` | Pulsação, transporte, estado online, última chamada, principais ferramentas, taxa de sucesso em 24 horas |
+| GET | `/api/mcp/tools` | Lista de ferramentas MCP com `name`, `description`, `scopes`, `phase`, `auditLevel`, `sourceEndpoints` |
+| GET | `/api/mcp/sse` | Abra o fluxo SSE para o transporte SSE (retorna `503` se MCP estiver desativado ou incompatibilidade de transporte) |
+| POST | `/api/mcp/sse` | Enviar trama JSON-RPC no transporte SSE |
+| GET | `/api/mcp/stream` | Abra o lado SSE do transporte HTTP Streamable (mensagens iniciadas pelo servidor) |
+| POST | `/api/mcp/stream` | Enviar trama JSON-RPC no transporte Streamable HTTP |
+| DELETE | `/api/mcp/stream` | Terminar uma sessão do Streamable HTTP |
+| GET | `/api/mcp/audit` | Consultar registo de auditoria — `?limit=`, `?offset=`, `?tool=`, `?success=true                                | false`, `?apiKeyId=` |
+| GET | `/api/mcp/audit/stats` | Estatísticas agregadas de auditoria (totais, taxa de sucesso, duração média, principais ferramentas) |
 
-**Autenticação:** os transportes `sse`/`stream` respeitam a superfície de autenticação específica do MCP (chave de API Bearer com o âmbito `mcp`); as rotas `status`/`tools`/`audit*` podem ser lidas a partir do painel (sem autenticação adicional para além do acesso ao anfitrião do painel).
+**Autenticação:** os transportes `sse`/`stream` respeitam a superfície de autenticação específica do MCP (chave API do portador com âmbito `mcp` ); as rotas `status`/`tools`/`audit*` podem ser lidas no painel (não é necessária autenticação extra para além de chegar ao host do painel).
 
-> Ambos os transportes HTTP são controlados por `settings.mcpEnabled` e `settings.mcpTransport` — uma incompatibilidade de transporte devolve `400`; um estado de MCP desativado devolve `503`.
+> Ambos os transportes HTTP são controlados por `settings.mcpEnabled` e `settings.mcpTransport` — uma incompatibilidade de transporte retorna `400`, um estado MCP desativado retorna `503`.
 
 ---
 

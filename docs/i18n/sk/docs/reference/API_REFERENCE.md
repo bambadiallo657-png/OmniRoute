@@ -1016,36 +1016,26 @@ serveri: ChatGPT vracia `codex.rate_limits` + `response.created` a streamuje dok
 
 ---
 
-## Hlásenie kvót a problémov
+## Kvóty a nahlasovanie problémov
 
-| Metóda | Cesta               | Popis                                                                                           |
-| ------ | ------------------- | ----------------------------------------------------------------------------------------------- |
-| GET    | `/v1/quotas/check`  | Predbežne overí kvótu pre kombináciu `provider` + `accountId` pred vydaním registrovaného kľúča |
-| POST   | `/v1/issues/report` | Nahlási zlyhanie kvóty/vydania kľúča do GitHubu (vyžaduje `GITHUB_ISSUES_REPO` + token)         |
+| Metóda | Cesta               | Popis                                                                               |
+| ------ | ------------------- | ----------------------------------------------------------------------------------- |
+| GET    | `/v1/quotas/check`  | Pred vydaním registrovaného kľúča vopred overte kvótu pre `provider` + `accountId`  |
+| POST   | `/v1/issues/report` | Nahláste zlyhanie vydania quota/key GitHub (vyžaduje token `GITHUB_ISSUES_REPO` + ) |
 
-**Autentifikácia:** Bearer API kľúč (`isAuthenticated`).
+**Auth:** `/v1/quotas/check` prevezme kľúč API nosiča (`isAuthenticated`). `/v1/issues/report` je len pre správu (`requireManagementAuth`), ako napríklad `/api/v1/registered-keys`: relácia dashboardu, lokálny token CLI alebo kľúč API s rozsahom `manage`/`admin` ; Kľúče API len na odvodenie získajú `403`.
 
-### Obnovenie relácie kvóty (voliteľné)
+### Obnovenie relácie kvóty (prihlásenie)
 
-Ne-streamujúca požiadavka `POST /v1/chat/completions` alebo `POST /v1/responses`, ktorá zlyhá
-terminálnou chybou kvóty (`402`/`429`/`503`, ktorej telo uvádza, že kvóta alebo kredity sú vyčerpané),
-môže byť odložená a neskôr znovu prehraná namiesto vrátenia chyby. Volajúci túto možnosť aktivuje
-pre každú požiadavku pomocou troch hlavičiek:
+Nestreamovaný `POST /v1/chat/completions` alebo `POST /v1/responses`, ktorý zlyhá s chybou terminálnej kvóty (`402`/`429`/`503` ktorého telo hovorí, že kvóta alebo kredity sú vyčerpané), možno namiesto vrátenia chyby zaparkovať a prehrať neskôr. Volajúci sa prihlási na žiadosť s tromi hlavičkami:
 
-| Hlavička                     | Hodnota                                                |
-| ---------------------------- | ------------------------------------------------------ |
-| `x-omniroute-quota-recovery` | `auto`                                                 |
-| `x-omniroute-session`        | ID relácie, `[A-Za-z0-9._:-]{1,128}`                   |
-| `x-omniroute-recovery-turn`  | ID obratu jedinečné v rámci relácie (rovnaké pravidlo) |
+| Hlavička                     | Hodnota                                              |
+| ---------------------------- | ---------------------------------------------------- |
+| `x-omniroute-quota-recovery` | `auto`                                               |
+| `x-omniroute-session`        | ID relácie, `[A-Za-z0-9._:-]{1,128}`                 |
+| `x-omniroute-recovery-turn`  | turn id jedinečné v rámci relácie (rovnaké pravidlo) |
 
-Spĺňať podmienky môžu iba obraty s `stream: false`, bez nástrojov, histórie nástrojov alebo
-`previous_response_id` a bez pripnutia `x-omniroute-connection`; zároveň musí byť nastavený
-`STORAGE_ENCRYPTION_KEY` (požiadavka sa uloží šifrovane najviac na 24 hodín). Odpoveď bude následne
-`202` s hodnotou `recovery.poll`; stav je možné zisťovať pomocou
-`GET /v1/quota-recoveries/{id}` (`202` počas čakania, `200` s obnoveným telom po dokončení) alebo
-požiadavku zrušiť pomocou `DELETE`. Lístky sú viditeľné iba pre API kľúč, ktorý ich vytvoril.
-Opätovné prehratie s neistým výsledkom skončí v stave `needs_confirmation`, namiesto toho, aby bolo
-odoslané dvakrát. Zdroj: `src/lib/quota/quotaSessionRecovery.ts`.
+Vhodné sú iba otáčky `stream: false` bez nástrojov, histórie nástroja alebo `previous_response_id` a bez kolíka `x-omniroute-connection` a musí byť nastavené `STORAGE_ENCRYPTION_KEY` (požiadavka je uložená zašifrovaná až 24 hodín). Odpoveď je potom `202` s `recovery.poll`; anketa `GET /v1/quota-recoveries/{id}` (`202` zatiaľ čo čaká, `200` s obnoveným telom po dokončení) alebo zrušte pomocou `DELETE`. Lístky sú viditeľné iba pre kľúč API, ktorý ich vytvoril. Opakované prehrávanie, ktorého výsledok je neistý, končí v `needs_confirmation` namiesto toho, aby bol odoslaný dvakrát. Zdroj: `src/lib/quota/quotaSessionRecovery.ts`.
 
 ---
 
@@ -1799,17 +1789,21 @@ Odchádzajúce odbery webhookov pre udalosti OmniRoute (dokončenie požiadavky,
 
 ## Registrované kľúče (automatická správa)
 
-Používa sa podsystémom automatickej správy kľúčov na vydávanie a rotáciu kľúčov API voči poskytovateľovi/účtu na pozadí s dennými/hodinovými kvótami.
+Používa sa podsystémom správy automatických kľúčov na vydávanie a otáčanie kľúčov API oproti podpornému provider/account s kvótami daily/hourly.
 
-| Method | Path                                  | Description                                                                                                                                                                                                   |
-| ------ | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/api/v1/registered-keys`             | Zoznam registrovaných kľúčov (iba maskovaný prefix)                                                                                                                                                           |
-| POST   | `/api/v1/registered-keys`             | Vydanie nového registrovaného kľúča — telo: `{name, provider?, accountId?, idempotencyKey?, expiresAt?, dailyBudget?, hourlyBudget?}`. Surový kľúč sa vráti **iba raz**. Pri odmietnutí kvóty sa vráti `429`. |
-| GET    | `/api/v1/registered-keys/[id]`        | Načítanie metadát registrovaného kľúča (bez surového kľúča)                                                                                                                                                   |
-| DELETE | `/api/v1/registered-keys/[id]`        | Odvolanie registrovaného kľúča                                                                                                                                                                                |
-| POST   | `/api/v1/registered-keys/[id]/revoke` | Explicitný koncový bod na odvolanie (rovnaký účinok ako DELETE)                                                                                                                                               |
+| Metóda | Cesta                                 | Popis                                                                                                                                                                                                 |
+| ------ | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/v1/registered-keys`             | Zoznam registrovaných kľúčov (len maskovaná predpona)                                                                                                                                                 |
+| POST   | `/api/v1/registered-keys`             | Vydajte nový registrovaný kľúč — body: `{name, provider?, accountId?, idempotencyKey?, expiresAt?, dailyBudget?, hourlyBudget?}`. Vráti nespracovaný kľúč** raz** . Vráti `429` pri odmietnutí kvóty. |
+| GET    | `/api/v1/registered-keys/[id]`        | Získať metadáta registrovaného kľúča (žiadne suroviny)                                                                                                                                                |
+| DELETE | `/api/v1/registered-keys/[id]`        | Zrušte zaregistrovaný kľúč                                                                                                                                                                            |
+| POST   | `/api/v1/registered-keys/[id]/revoke` | Explicitné zrušenie koncového bodu (rovnaký efekt ako DELETE)                                                                                                                                         |
+| GET    | `/api/v1/providers/[provider]/limits` | Prečítajte si limity vydávania poskytovateľa                                                                                                                                                          |
+| PUT    | `/api/v1/providers/[provider]/limits` | Nastavte limity vydávania poskytovateľa — body: `{maxActiveKeys?, dailyIssueLimit?, hourlyIssueLimit?}`                                                                                               |
+| GET    | `/api/v1/accounts/[id]/limits`        | Prečítajte si limity na vydanie účtu                                                                                                                                                                  |
+| PUT    | `/api/v1/accounts/[id]/limits`        | Nastavte limity vydávania účtu — rovnaké telo ako trasa poskytovateľa                                                                                                                                 |
 
-**Autentifikácia:** relácia/klúč API na správu (`requireManagementAuth`) — rovnaká ochrana ako pri `/api/keys`: relácia dashboardu, lokálny token CLI alebo kľúč API s rozsahom `manage`/`admin`; kľúče API určené iba na inferenciu dostanú `403`. Pozrite si tiež `/v1/quotas/check` a `/v1/issues/report`.
+**Auth:** manažment kľúč session/API (`requireManagementAuth`) — rovnaký strážca ako `/api/keys`: relácia dashboardu, lokálny token CLI alebo kľúč API s rozsahom `manage`/`admin` ; Kľúče API iba na odvodenie získajú `403`. Pozri tiež `/v1/quotas/check` a `/v1/issues/report`.
 
 ---
 
@@ -1931,25 +1925,25 @@ Trvalé konverzačné/faktické úložisko pamäte s rozsahom podľa kľúča AP
 
 ---
 
-## Server MCP
+## server MCP
 
-OmniRoute obsahuje vložený server Model Context Protocol s 3 prenosmi (stdio, SSE, streamable-http) a nástrojmi s rozsahmi. Nasledujúce koncové body ovládacieho panela načítavajú údaje o stave/audite a sprostredkúvajú prenosy HTTP.
+OmniRoute dodáva vstavaný server Model Context Protocol s 3 prenosmi (stdio, SSE, streamable-http) a rozsahovými nástrojmi. Koncové body dashboardu nižšie čítajú údaje status/audit a zastupujú prenosy HTTP.
 
-| Metóda | Cesta                  | Popis                                                                                                      | -------------------- |
-| ------ | ---------------------- | ---------------------------------------------------------------------------------------------------------- | -------------------- |
-| GET    | `/api/mcp/status`      | Signál, prenos, stav online, posledné volanie, najpoužívanejšie nástroje, miera úspešnosti za 24 hodín     |
-| GET    | `/api/mcp/tools`       | Zoznam nástrojov MCP s položkami `name`, `description`, `scopes`, `phase`, `auditLevel`, `sourceEndpoints` |
-| GET    | `/api/mcp/sse`         | Otvorenie SSE streamu pre prenos SSE (vracia `503`, ak je MCP zakázané alebo sa prenos nezhoduje)          |
-| POST   | `/api/mcp/sse`         | Odoslanie rámca JSON-RPC cez prenos SSE                                                                    |
-| GET    | `/api/mcp/stream`      | Otvorenie SSE strany prenosu Streamable HTTP (správy iniciované serverom)                                  |
-| POST   | `/api/mcp/stream`      | Odoslanie rámca JSON-RPC cez prenos Streamable HTTP                                                        |
-| DELETE | `/api/mcp/stream`      | Ukončenie relácie Streamable HTTP                                                                          |
-| GET    | `/api/mcp/audit`       | Dotazovanie denníka auditu — `?limit=`, `?offset=`, `?tool=`, `?success=true                               | false`, `?apiKeyId=` |
-| GET    | `/api/mcp/audit/stats` | Súhrnné štatistiky auditu (celkové počty, miera úspešnosti, priemerné trvanie, najpoužívanejšie nástroje)  |
+| Metóda | Cesta | Popis |
+| ------ | ---------------------- | ------------------------------------------------------------------------------------------------ | -------------------- |
+| GET | `/api/mcp/status` | Srdcový tep, doprava, online stav, posledný hovor, špičkové nástroje, 24-hodinová úspešnosť |
+| GET | `/api/mcp/tools` | Zoznam nástrojov MCP s `name`, `description`, `scopes`, `phase`, `auditLevel`, `sourceEndpoints` |
+| GET | `/api/mcp/sse` | Otvoriť stream SSE pre transport SSE (vráti `503` ak je MCP vypnutý alebo nesúlad transportu) |
+| POST | `/api/mcp/sse` | Pošlite rámec JSON-RPC na transport SSE |
+| GET | `/api/mcp/stream` | Open SSE side of the Streamable HTTP transport (server-initiated messages) |
+| POST | `/api/mcp/stream` | Odošlite rámec JSON-RPC na prenos HTTP s možnosťou streamovania |
+| DELETE | `/api/mcp/stream` | Ukončite streamovateľnú reláciu HTTP |
+| GET | `/api/mcp/audit` | Denník auditu dotazu — `?limit=`, `?offset=`, `?tool=`, `?success=true                                | false`, `?apiKeyId=` |
+| GET | `/api/mcp/audit/stats` | Súhrnné štatistiky auditu (súčty, úspešnosť, priemerné trvanie, najlepšie nástroje) |
 
-**Autentifikácia:** prenosy `sse`/`stream` používajú autentifikačné rozhranie špecifické pre MCP (Bearer kľúč API s rozsahom `mcp`); trasy `status`/`tools`/`audit*` sú dostupné na čítanie z ovládacieho panela (nevyžaduje sa žiadna ďalšia autentifikácia okrem prístupu k hostiteľovi ovládacieho panela).
+**Auth:** prenosy `sse`/`stream` rešpektujú povrch autorizácie špecifický pre MCP (nosný kľúč API s rozsahom `mcp` ); trasy `status`/`tools`/`audit*` sú čitateľné z palubnej dosky (nevyžaduje sa žiadne ďalšie overenie okrem dosiahnutia hostiteľa palubnej dosky).
 
-> Oba prenosy HTTP sú riadené nastaveniami `settings.mcpEnabled` a `settings.mcpTransport` — nezhoda prenosu vracia `400`, zakázaný stav MCP vracia `503`.
+> Oba transporty HTTP sú hradlované pomocou `settings.mcpEnabled` a `settings.mcpTransport` — nesúlad transportu vracia `400`, stav MCP vypnutý vracia `503`.
 
 ---
 

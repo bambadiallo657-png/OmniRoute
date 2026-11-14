@@ -16,7 +16,7 @@ OmniRoute on kohalik AI marsruutimise lüüs ja armatuurlaud, mis on ehitatud Ne
 
 Põhilised võimalused:
 
-- OpenAI-ga ühilduv API pind CLI/tools jaoks (381 pakkujat, 159 täitjamoodulit)
+- OpenAI-ga ühilduv API pind CLI/tools jaoks (393 pakkujat, 159 täitjamoodulit)
 - Request/response tõlge teenusepakkuja vormingute vahel
 - Mudeli kombineeritud varu (mitme mudeli jada)
 - Struktureeritud kombineeritud sammud (`provider + model + connection`) koos käitusaja järjestamisega `compositeTiers` järgi
@@ -368,7 +368,7 @@ Automaatne kombineerimine hindab ja valib dünaamiliselt marsruutimise sihtmärk
 
 Peamised võimalused:
 
-- **20 marsruutimisstrateegiat** (prioriteetne, kaalutud, täitke enne, round-robin, P2C, juhuslik, vähim kasutatud, kuluoptimeeritud, lähtestamisteadlik, lähtestamisaken, vaba ruumi, kvoodiga kaalutud, rangelt juhuslik,** auto** , lkgp, konteksti optimeeritud, vahemälu optimeeritud, kontekstirelee,** sulandumine** , torujuhe) — auto on pealkirja lisamine versioonis 3.8.0; `fusion` (paneel fan-out + kohtuniku süntees, `open-sse/services/fusion.ts`) on versioonis 3.8.36 uus.
+- **21 marsruutimisstrateegiat** (prioriteediga, kaalutud, täitke enne, round-robin, P2C, juhuslik, vähim kasutatud, kuluoptimeeritud, lähtestamisteadlik, lähtestamisaken, aegumistähtaeg, pearuum, kvoodiga kaalutud, rangelt juhuslik,** auto** , lkgp, konteksti optimeeritud, vahemälu optimeeritud, kontekstirelee,** sulandumine** , torujuhe) — auto on pealkirja lisamine versioonis 3.8.0; `fusion` (paneel fan-out + kohtuniku süntees, `open-sse/services/fusion.ts`) on versioonis 3.8.36 uus.
 - **16-faktoriline punktiarvestus** : kvoot, tervis, pöördkulu, pöördlatentsus, ülesande sobivus ja veel kümme. Tegurite ja nende vaikekaalude kanooniline tabel on [`docs/routing/AUTO-COMBO.md`](../routing/AUTO-COMBO.md) —, kui seda siin uuesti korrata, oleks see aegunud.
 - **Virtuaalne tehas** realiseerib lühiajalised kombinatsioonid, kui sobivat nimelist kombinatsiooni pole olemas, hankides kandidaate tervetest aktiivsetest pakkujaühendustest.
 - **Automaatsed eesliited** : `auto/coding`, `auto/cheap`, `auto/fast`, `auto/offline`, `auto/smart`, `auto/lkgp` — millest igaüks toetab häälestatud kaaluprofiili.
@@ -857,41 +857,47 @@ flowchart LR
 - `src/lib/db/*`: importige konkreetseid mooduleid otse — koondfaili ei ole (vana `localDb.ts` uuestieksportimise kihi eemaldati)
 - `src/lib/usageDb.ts`: kasutusajaloo/kõnede logide liides SQLite tabelite peal
 
-## Pakkuja täitmismootorite (Executor) katvus (Strateegia muster)
+## Pakkuja täitja katvus (strateegia muster)
 
-Igal pakkujal on spetsialiseeritud täitmismootor, mis laiendab klassi `BaseExecutor` (failis `open-sse/executors/base.ts`), mis pakub URL-i koostamist, päiste koostamist, korduskatseid eksponentsiaalse tagasilangusega, mandaatide värskendamise konkse (hooks) ja `execute()` orkestreerimismeetodit.
+Igal pakkujal on spetsiaalne täitur, mis laiendab `BaseExecutor` ( `open-sse/executors/base.ts`), mis pakub URL -ehitamist, päise ehitamist, eksponentsiaalse tagasilükkamisega uuesti proovimist, mandaadi värskenduskonksu ja `execute()` -orkestreerimismeetodit.
 
-| Executor                  | Pakkuja(d)                                                                                                                                                  | Erikäsitlus                                                                               |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `DefaultExecutor`         | OpenAI, Claude, Gemini, Qwen, OpenRouter, GLM, Kimi, MiniMax, DeepSeek, Groq, xAI, Mistral, Perplexity, Together, Fireworks, Cerebras, Cohere, NVIDIA, jne. | Dünaamiline URL/päiste konfiguratsioon vastavalt pakkujale                                |
-| `AntigravityExecutor`     | Google Antigravity                                                                                                                                          | Kohandatud projekti/seansi ID-d, Retry-After parsimine, 429 hägustamine                   |
-| `AzureOpenAIExecutor`     | Azure OpenAI                                                                                                                                                | Juurutuse (deployment) põhine ruutimine, api-version päringuparameetri jõustamine         |
-| `BlackboxWebExecutor`     | Blackbox AI (veebirežiim)                                                                                                                                   | Veebiseansi pöördlahendus TLS jäljendi emuleerimisega                                     |
-| `ClaudeIdentityExecutor`  | Claude.ai (CCH tee)                                                                                                                                         | Piirangute + tööriistade ümbermääramise (tool-remap) torustikud, jäljendi kujundamine     |
-| `CliProxyApiExecutor`     | CLIProxyAPI-ühilduvad pakkujad                                                                                                                              | Kohandatud autentimise ja protokolli käsitlus                                             |
-| `CloudflareAiExecutor`    | Cloudflare Workers AI                                                                                                                                       | Konto ID süstimine, Neuronite (Neurons) põhine kasutuse jälgimine                         |
-| `CodexExecutor`           | OpenAI Codex                                                                                                                                                | Süstib süsteemseid juhiseid, sunnib arutlustaseme (reasoning effort)                      |
-| `ChatGptWebCodexExecutor` | ChatGPT Web (Codex)                                                                                                                                         | Brauseriseansi Responses API sild lõime/käigu kinnistamisega                              |
-| `CommandCodeExecutor`     | Command Code                                                                                                                                                | OAuth + seansipõhine päiste rotatsioon                                                    |
-| `CursorExecutor`          | Cursor IDE                                                                                                                                                  | ConnectRPC protokoll, Protobuf kodeerimine, päringute allkirjastamine kontrollsumma kaudu |
-| `DevinCliExecutor`        | Devin CLI                                                                                                                                                   | Devin'i ülesande elutsükli sidumine pilveagendi mooduli kaudu                             |
-| `GithubExecutor`          | GitHub Copilot                                                                                                                                              | Copilot'i tokeni värskendamine, VSCode'i jäljendavad päised                               |
-| `GitlabExecutor`          | GitLab Duo                                                                                                                                                  | GitLab OAuth + projekti ulatuses ruutimine                                                |
-| `GlmExecutor`             | Z.AI GLM (kaasa arvatud `glmt` eelseadistus)                                                                                                                | Mõtlemiseelarve (thinking-budget) teadlikkus, GLMT eelseadistuse konstandid               |
-| `GrokWebExecutor`         | xAI Grok veeb                                                                                                                                               | Veebiseansi pöördlahendus, režiimi valik (mõtlemine/standard)                             |
-| `KieExecutor`             | KIE                                                                                                                                                         | Kohandatud tokeni väljastamine roteeruvate seansi ankrutega                               |
-| `KiroExecutor`            | AWS CodeWhisperer/Kiro                                                                                                                                      | AWS EventStream'i binaarvormingu → SSE teisendus                                          |
-| `MuseSparkWebExecutor`    | Muse Spark (veeb)                                                                                                                                           | Veebiseansi pöördlahendus pildisõnumite sidumisega                                        |
-| `NlpCloudExecutor`        | NLP Cloud                                                                                                                                                   | Pakkujaspetsiifiline päringukeha kuju                                                     |
-| `OpenCodeExecutor`        | OpenCode                                                                                                                                                    | AI SDK-ga ühilduva pakkuja seadistus                                                      |
-| `PerplexityWebExecutor`   | Perplexity veeb                                                                                                                                             | Veebiseansi pöördlahendus vestluse jätkamiseks                                            |
-| `PetalsExecutor`          | Petals hajutatud järelduse (inference) mootor                                                                                                               | Detsentraliseeritud pesa (swarm) ruutimine                                                |
-| `PollinationsExecutor`    | Pollinations AI                                                                                                                                             | API-võtit ei vajata, kiiruspiiratud (rate-limited) päringud                               |
-| `QoderExecutor`           | Qoder AI                                                                                                                                                    | PAT ja OAuth tugi, mitme mudeli tasuta tase                                               |
-| `VertexExecutor`          | Google Vertex AI                                                                                                                                            | Teenusekonto autentimine, regioonipõhised lõpp-punktid                                    |
-| `DevinDesktopExecutor`    | Devin Desktop                                                                                                                                               | Imporditud API-võti + Connect-protobufi vestluse voogesitus                               |
+| Teostaja                  | Pakkuja(d)                                                                                                                                     | Spetsiaalne käsitsemine                                                                |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `DefaultExecutor`         | OpenAI, Claude, Gemini, Qwen, OpenRouter, GLM, Kimi, MiniMax, DeepSeek, Groq, xAI, Mistral, Together, Fireworks, Cerebras, Cohere, NVIDIA qqp. | Dünaamiline URL/header konfiguratsioon pakkuja kohta                                   |
+| `AntigravityExecutor`     | Google Antigravity                                                                                                                             | Kohandatud project/session IDs, uuesti proovimine pärast sõelumist, 429 hägustamine    |
+| `AzureOpenAIExecutor`     | Azure OpenAI                                                                                                                                   | Juurutuspõhine marsruutimine, API-versiooni päringu jõustamine                         |
+| `BlackboxWebExecutor`     | Blackbox AI (veebirežiim)                                                                                                                      | Veebisessiooni tagasikäik TLS sõrmejälje emulatsiooniga                                |
+| `ClaudeIdentityExecutor`  | Claude.ai (CCH tee)                                                                                                                            | Piirang + tööriista-remap torujuhtmed, sõrmejälgede kujundamine                        |
+| `CliProxyApiExecutor`     | CLIProxyAPI-ga ühilduvad pakkujad                                                                                                              | Kohandatud autentimine ja protokolli käsitlemine                                       |
+| `CloudflareAiExecutor`    | Cloudflare Töötajad AI                                                                                                                         | Konto ID süstimine, neuronitepõhine kasutamise jälgimine                               |
+| `CodexExecutor`           | OpenAI Codex                                                                                                                                   | Sisestab süsteemi juhiseid, sunnib arutlustööd tegema                                  |
+| `ChatGptWebCodexExecutor` | ChatGPT Web (Codex)                                                                                                                            | Brauseri seansi vastused API sild koos thread/turn kinnitamisega                       |
+| `CommandCodeExecutor`     | Käsukood                                                                                                                                       | OAuth + seansi päise pööramine                                                         |
+| `CursorExecutor`          | Cursor IDE                                                                                                                                     | ConnectRPC protokoll, Protobuf kodeering, taotluse allkirjastamine kontrollsumma kaudu |
+| `DevinCliExecutor`        | Devin CLI                                                                                                                                      | Devin ülesande elutsükli sildamine pilvagendi mooduli kaudu                            |
+| `GithubExecutor`          | GitHub Copilot                                                                                                                                 | Copilot märgi värskendamine, VSC-koodi jäljendavad päised                              |
+| `GitlabExecutor`          | GitLab Duo                                                                                                                                     | GitLab OAuth + projekti ulatusega marsruutimine                                        |
+| `GlmExecutor`             | Z.AI GLM (sh `glmt` eelseadistatud)                                                                                                            | Eelarveteadlik mõtlemine, GLMT eelseadistatud konstandid                               |
+| `GrokWebExecutor`         | xAI Grok veeb                                                                                                                                  | Veebisessiooni tagasikäik, režiimi valik (think/standard)                              |
+| `KieExecutor`             | KIE                                                                                                                                            | Kohandatud žetoonide väljastamine koos pöörlevate seansiankrutega                      |
+| `KiroExecutor`            | AWS CodeWhisperer/Kiro                                                                                                                         | AWS EventStream kahendvormingus → SSE teisendus                                        |
+| `MuseSparkWebExecutor`    | Muse Spark (veeb)                                                                                                                              | Veebi-seanss vastupidine pilt-sõnumi sillaga                                           |
+| `NlpCloudExecutor`        | NLP Pilv                                                                                                                                       | Pakkujapõhine kehakuju                                                                 |
+| `OpenCodeExecutor`        | OpenCode                                                                                                                                       | AI SDK ühilduva pakkuja seadistamine                                                   |
+| `PerplexityWebExecutor`   | Hämmelduse veeb                                                                                                                                | Veebiseanss vastupidine vestluse jätkamiseks                                           |
+| `PetalsExecutor`          | Kroonlehed jaotatud järeldus                                                                                                                   | Detsentraliseeritud sülemi marsruutimine                                               |
+| `PollinationsExecutor`    | Tolmeldamised AI                                                                                                                               | API klahvi pole vaja, päringud on piiratud kiirusega                                   |
+| `QoderExecutor`           | Qoder AI                                                                                                                                       | PAT ja OAuth tugi, mitme mudeli tasuta tasand                                          |
+| `VertexExecutor`          | Google Vertex AI                                                                                                                               | Teenusekonto autentimine, piirkonnapõhised lõpp-punktid                                |
+| `DevinDesktopExecutor`    | Devin töölaud                                                                                                                                  | Imporditud API võti + Connect-protobuf vestluse voogesitus                             |
 
-Kõik muud pakkujad (kaasa arvatud kohandatud ühilduvad sõlmed) kasutavad `DefaultExecutor`-it.
+Kõik teised pakkujad (sh kohandatud ühilduvad sõlmed) kasutavad `DefaultExecutor`.
+
+### Automatiseeritud proovid ja veebiseansi kontod
+
+Mudelitestid, Test All, kombineeritud testid ja hinnangud saadavad tõelisi vestlustaotlusi. Veebisessiooni pakkuja tegutseb sisselogitud kasutajana, nii et kõik need päringud salvestatakse sellele kontole vestlusena; sellistest vestlustest lahkunud automatiseeritud uurimiste konto peatati (#14780). Vestluskonveier keeldub seetõttu igast sihtmärgist, milleni jõuab automatiseeritud sond, mille pakkuja võtab veebiseansi mandaadi, kui sihtmärgi pakkuja on lahendatud ja enne mandaadi valimist (`src/lib/providers/chatProbePolicy.ts`). Keeldumine on `422` koos `error.code` `chat_probe_not_isolated` ja sondi jooksjad teatavad sellest kui vahelejätmisest, mitte ebaõnnestumisest.
+
+Käivitaja, kes käivitab iga vestluse pakkuja enda ajaloota režiimis, deklareerib selle `ChatProbeIsolatingExecutor` (`open-sse/executors/chatProbeIsolation.ts`); seejärel lubatakse selle teenusepakkuja poole pöörduda. ChatGPT Veeb deklareerib `temporary-chat`. Kinnitage deklaratsioon selle mehhanismi külge testiga, nii et väide ei kestaks kauem kui kood, mis selle tõeseks muudab.
 
 ## Pakkujate ühilduvusmaatriks
 
@@ -959,37 +965,37 @@ Kõik muud pakkujad (kaasa arvatud kohandatud ühilduvad sõlmed) kasutavad `Def
 | OpenCode (Go/Zen)   | openai           | OAuth                     | ✅               | ✅         | ✅                | ❌                            |
 | CLIProxyAPI         | openai           | Kohandatud                | ✅               | ✅         | ❌                | ❌                            |
 
-## Vormingu teisendamise kaetus
+## Vormi tõlke katvus
 
-Tuvastatud lähtevormingud sisaldavad:
+Tuvastatud allikavormingud hõlmavad järgmist:
 
 - `openai`
 - `openai-responses`
 - `claude`
 - `gemini`
 
-Sihtvormingud sisaldavad:
+Sihtvormingud hõlmavad järgmist:
 
 - OpenAI chat/Responses
 - Claude
-- Gemini/Antigravity envelope
+- Gemini/Antigravity ümbrik
 - Kiro
 - Cursor
 
-Teisendused kasutavad **OpenAI-t keskse vormingina (hub format)** — kõik teisendused toimuvad läbi OpenAI vahepealse vorminguna:
+Tõlked kasutavad**OpenAI jaoturi vorminguks** — kõik konversioonid läbivad OpenAI vaheühendina:
 
 ```
-Lähtevorming → OpenAI (hub) → Sihtvorming
+Source Format → OpenAI (hub) → Target Format
 ```
 
-Teisendused valitakse dünaamiliselt lähtekasuliku andmemahu kuju ja teenusepakkuja sihtvormingu alusel.
+Tõlked valitakse dünaamiliselt allika kasuliku koormuse kuju ja pakkuja sihtvormingu alusel.
 
-Teisenduspipeline'i täiendavad töötlusetapid:
+Tõlkekonveieri täiendavad töötlemiskihid:
 
-- **Vastuse puhastamine (sanitization)** — Eemaldab OpenAI-vormingus vastustest (nii voogesituse kui mitte-voogesituse korral) mittestandardsed väljad, tagamaks range SDK-le vastavuse
-- **Rolli normaliseerimine** — Teisendab `developer` → `system` mitte-OpenAI sihtvormingute jaoks; ühendab `system` → `user` mudelite jaoks, mis lükkavad system-rolli tagasi (GLM, ERNIE)
-- **Think-tag'ide eraldamine** — Analüüsib `` blokid sisust ja eraldab need `reasoning_content` väljale
-- **Struktureeritud väljund** — Teisendab OpenAI `response_format.json_schema` Gemini `responseMimeType` + `responseSchema` vormingusse
+- **Reaktsioonide desinfitseerimine** — eemaldab OpenAI-vormingus vastustest mittestandardsed väljad (nii voogedastus- kui ka mittevoogedastus), et tagada range SDK vastavus
+- **Rolli normaliseerimine** — Teisendab `developer` → `system` mitte-OpenAI sihtmärkide jaoks; ühendab `system` → `user` mudelite jaoks, mis keelduvad süsteemirollist (GLM, ERNIE)
+- **Mõelge sildi ekstraheerimisele** — Parsib `<think>...</think>` blokke sisust `reasoning_content` väljale
+- **Struktureeritud väljund** — `responseSchema` OpenAI `response_format.json_schema` Gemini `responseMimeType` +
 
 ## Toetatud API lõpp-punktid
 
@@ -1055,11 +1061,11 @@ Vanem failipõhine päringulogija (`open-sse/utils/requestLogger.ts`) on säilit
 - SQLite skeemi migratsioonid ja automaatse uuendamise hoogud käivitamisel
 - vana JSON → SQLite migratsiooni ühilduvustee
 
-## 6) SSRF / väljuva URL-i kaitse
+## 6) SSRF / Outbound URL Guard
 
-- `src/shared/network/outboundUrlGuard.ts` blokeerib kõik privaatsed/loopback/link-local sihtmärk-URL-id enne, kui need jõuavad pakkuja täitjatesse
-- Pakkuja mudeli avastamise ja valideerimise rajad kasutavad `src/shared/network/safeOutboundFetch.ts`, mis rakendab kaitset enne igat väljuvat päringut
-- Kaitse vead ilmuvad kui `URL_GUARD_BLOCKED` koos HTTP 422 staatusega ning logitakse vastavuse auditi rajale `providerAudit.ts` kaudu
+- `BaseExecutor.assertOutboundUrlAllowed` (`open-sse/executors/base.ts`) rakendab `src/shared/network/outboundUrlGuard.ts` `BaseExecutor.execute()` kaudu saadetud vestlustaotlustele. Ainult avalikus režiimis (`OMNIROUTE_ALLOW_LOCAL_PROVIDER_URLS=false` privaatse lipuga välja lülitatud) blokeerib see privaat- ja loopback-hostid ning 169.254.0.0/16; igas teises režiimis blokeerib see pilve metaandmete hostid. See kontrollib masinanime või IP literaali nii, nagu see on kirjutatud, enne mis tahes DNS otsingut. Sisseehitatud kohalikud pakkujad jätavad selle vahele.
+- Pakkuja mudelituvastus- ja valideerimismarsruudid kasutavad `src/shared/network/safeOutboundFetch.ts`, mis rakendab kaitset enne iga väljaminevat päringut
+- Valvevead kuvatakse `URL_GUARD_BLOCKED` HTTP 503 korral (`getSafeOutboundFetchErrorStatus`; mudeli avastamise marsruut tagastab 400) ja ehtsad SSRF plokid valideerimise ajal logitakse kontrolljäljele `provider.validation.ssrf_blocked` sündmustena
 
 ## Vaadeldavus ja operatiivsed signaalid
 

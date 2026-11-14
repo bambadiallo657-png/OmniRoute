@@ -38,34 +38,34 @@ Web 検索、Web スクレイピング、プロバイダーの並列比較を統
 
 ### 検索タブ
 
-既存の `SearchForm` + `ResultsPanel` + `RerankPanel` をタブ形式に発展させます。
+既存の`SearchForm` + `ResultsPanel` + `RerankPanel`をタブに進化させます。
 
-- クエリ → 結果（タイトル、URL、スニペット、関連度スコア）。
-- Config ペインにプロバイダーのメタデータ（コスト、クォータ、ステータス）を表示。
-- リランクセクション：リランクモデルを選択し、結果を並べ替え、`positionDelta` を表示。
-- 検索プロバイダーが設定されていない場合、CTA を含む空の状態を表示。
-- `SearchHistory.tsx` による検索履歴。
-- `POST /v1/search` を呼び出します（既存のエンドポイント、変更なし）。
+- →結果 (タイトル、 URL、スニペット、関連性スコア) をクエリします。
+- [構成] ペインのプロバイダーのメタデータ (コスト、クォータ、ステータス)。
+- 再ランク付けセクション: 再ランク付けモデルを選択し、結果を並べ替えて、 `positionDelta`を表示します。
+- 検索プロバイダーが構成されていない場合、 CTAは空の状態です。
+- `SearchHistory.tsx`経由で履歴を検索します。
+- `POST /v1/search`を呼び出します (既存のエンドポイント、変更なし)。
 
-### スクレイプタブ
+### スクレープタブ
 
-`POST /v1/web/fetch`（プラン 05 で作成）を使用して URL からコンテンツを抽出する新しいタブです。
+`POST /v1/web/fetch`経由でURLからコンテンツを抽出するための新しいタブ (プラン 05 で作成):
 
-- 入力：URL + ページ全体の切り替え + 形式セレクター（markdown / text / HTML）。
-- 送信 → 取得 → `ScrapeResult.tsx` でレンダリング。
-- `ScrapeResult` は markdown プレビューと raw 表示の切り替えを提供。
-- 上限：レスポンス本文が **256 KB** を超える場合、UI に `(切り詰められました。raw を表示)` と表示し、raw コンテンツを Monaco モーダル（D21）で開きます。
-- メタデータパネル：プロバイダー（firecrawl/jina-reader/tavily-search/tinyfish/nimble-search/anysearch-search/parallel-search）、レイテンシ、コスト、レスポンスサイズ、リンク数。
-- `useScrapeFetch.ts` フックを使用。
+- 入力: URL +フルページ切り替え+形式セレクター (マークダウン / テキスト / HTML)。
+- →フェッチ→レンダリング`ScrapeResult.tsx`を送信します。
+- `ScrapeResult`マークダウン プレビューをレンダリングします+ raw を切り替えます。
+- キャップ: if レスポンスボディ>** 256 KB** 、 UI `(truncated, view raw)`を表示し、Monaco モーダル (D21) で raw を開きます。
+- メタデータ パネル: プロバイダー (firecrawl/jina-reader/tavily-search/tinyfish/nimble-search/anysearch-search/parallel-search)、レイテンシ、コスト、応答サイズ、リンク数。
+- `useScrapeFetch.ts`フックを使用します。
 
-### 比較タブ
+### 「比較」タブ
 
-最大 **4 つのプロバイダーで同じクエリ／URLを並列実行**します（D22）。
+同じquery/URL最大で実行します。** 4 つのプロバイダーを並行して使用**(D22):
 
-- プロバイダーごとに横並びのカラムを表示。
-- 指標：レイテンシ、コスト、結果件数、レスポンスサイズ。
-- 検索時の URL 重複率を計算（初期結果に対する共有 URL の数）。
-- プロバイダーごとに `POST /v1/search`（検索）または `POST /v1/web/fetch`（スクレイプ）を呼び出します。
+- プロバイダーごとに横に並べた列。
+- メトリクス: レイテンシ、コスト、結果数、応答サイズ。
+- 検索のためのURLオーバーラップ計算 (共有URLsの数と初期結果)。
+- プロバイダーごとに`POST /v1/search` (検索) または`POST /v1/web/fetch` (スクレイピング) を呼び出します。
 
 ---
 
@@ -100,13 +100,13 @@ Web 検索、Web スクレイピング、プロバイダーの並列比較を統
 
 ## プロバイダーカタログ
 
-`ProviderCatalog.tsx` は、`GET /api/search/providers` から取得したプロバイダーの完全な一覧を公開します
-（F4 で取得プロバイダーも含むように拡張）：
+`ProviderCatalog.tsx` `GET /api/search/providers`からの完全なプロバイダー リストを公開します (フェッチ プロバイダーを含めるために F4 で拡張されます)。
 
-| `kind` | `"search"`（20 プロバイダー）または `"fetch"`（firecrawl、jina-reader、tavily-search、tinyfish、nimble-search、anysearch-search、parallel-search） |
+| `kind` | `"search"` (23 プロバイダー) または`"fetch"` (firecrawl、jina-reader、tavily-search、tinyfish、nimble-search、anysearch-search、Parallel-search) |
 
-ステータスは、認証情報が存在するかどうか、および
-すべてのキーが現在クールダウン中かどうかを確認することで、**リクエスト時に算出**されます。
+ステータスは**リクエスト時に導出される**資格情報が存在するかどうか、およびすべてのキーが現在クールダウン中かどうかを確認します。
+
+`codex-search` (Codex Web Search) には独自のキーがありません。接続されたCodex (ChatGPT) アカウントを再利用するため、各検索にはChatGPTサブスクリプション クォータが消費され、約 10 ～ 40 秒かかります。リクエストによって名前が付けられると実行されます。自動選択には`CODEX_SEARCH_AUTO_FALLBACK_ENABLED`機能フラグが必要です (デフォルトではオフ)。
 
 ---
 

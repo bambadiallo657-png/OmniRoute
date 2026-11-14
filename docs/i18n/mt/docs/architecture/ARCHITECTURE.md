@@ -14,7 +14,7 @@ OmniRoute huwa gateway u dashboard lokali AI routing mibnija fuq Next.js. Jippro
 
 Kapaċitajiet ewlenin:
 
-- Wiċċ API kompatibbli ma' OpenAI għal CLI/tools (381 fornitur, 159 modulu eżekutur)
+- Wiċċ API kompatibbli ma' OpenAI għal CLI/tools (393 fornitur, 159 modulu eżekutur)
 - Request/response traduzzjoni madwar formati tal-fornitur
 - Fallback combo tal-mudell (sekwenza multi-mudell)
 - Passi combo strutturati (`provider + model + connection`) b'ordni ta' runtime minn `compositeTiers`
@@ -370,7 +370,7 @@ Auto Combo b'mod dinamiku punteġġi u jiġbor il-miri tar-rotot fil-ħin tat-ta
 
 Kapaċitajiet ewlenin:
 
-- **20 strateġija ta' rotta** (prijoritarju, peżat, jimla l-ewwel, round-robin, P2C, każwali, l-inqas użat, ottimizzat għall-ispiża, konxju mill-irrisettjar, tieqa mill-ġdid, spazju għar-ras, peżat skont il-kwota, strettament każwali,** auto** , lkgp, context-optimized, cache-optimized, context-relay,** fużjoni** , pipeline) — auto hija ż-żieda ewlenija f'v3.8.0; `fusion` (panel fan-out + judge synthesis, `open-sse/services/fusion.ts`) hija ġdida f'v3.8.36.
+- **21 strateġiji ta' rotta** (prijorità, peżat, jimla l-ewwel, round-robin, P2C, każwali, l-inqas użat, ottimizzat għall-ispiża, konxju mill-irrisettjar, tieqa mill-ġdid, l-iskadenza l-ewwel, spazju għar-ras, peżat skont il-kwota, strettament każwali,** auto** , lkgp, context-optimized, cache-optimized, context-relay,** fużjoni** , pipeline) — auto hija ż-żieda ewlenija f'v3.8.0; `fusion` (panel fan-out + judge synthesis, `open-sse/services/fusion.ts`) hija ġdida f'v3.8.36.
 - **Skor ta’ 16-il fattur** : kwota, saħħa, spiża inversa, latenza inversa, kompitu tajbin u għaxar oħra. It-tabella kanonika tal-fatturi u l-piżijiet awtomatiċi tagħhom tgħix [`docs/routing/AUTO-COMBO.md`](../routing/AUTO-COMBO.md) — billi terġa' tgħidha hawn tagħtiha t-tieni post biex tmur rasa.
 - **Fabbrika virtwali** jimmaterjalizza combos effimeri meta ma teżisti l-ebda kombinazzjoni msemmija tqabbil, li jakkwista kandidati minn konnessjonijiet b'saħħithom tal-fornitur attivi.
 - **Prefissi awtomatiċi** : `auto/coding`, `auto/cheap`, `auto/fast`, `auto/offline`, `auto/smart`, `auto/lkgp` — kull wieħed appoġġjat minn profil ta 'piż sintonizzat.
@@ -396,11 +396,11 @@ Għal provvediment għal kull aġent u speċifikazzjonijiet OAuth, ara [`docs/fr
 Il-modulu tal-guardrails huwa saff ta 'middleware li jista' jerġa 'jiċċarġja bis-sħana li jispezzjona talbiet u tweġibiet għal PII, injezzjoni fil-pront, u kontenut ta' viżjoni mhux sigur. Vjolazzjonijiet short-circuit it-talba ma HTTP** 503** flimkien ma' kodiċi ta' żball strutturat, li jippermetti lil min iċempel downstream jerġgħu jippruvaw jew fergħa.
 
 - Għerq tal-modulu: `src/lib/guardrails/` (`base.ts`, `registry.ts`, `piiMasker.ts`, `promptInjection.ts`, `visionBridge.ts`, `visionBridgeHelpers.ts`)
-- Hot reload: reġistru arloġġi għall-konfigurazzjoni bidliet u jerġa 'jibni l-katina fil-post
+- Reload sħun: reġistru arloġġi għall-bidliet konfig u jibni mill-ġdid il-katina fil-post
 - Wire-in punti: dħul ta 'chat handler, handler ta' ġenerazzjoni ta 'immaġni, sanitizer ta' rispons
 - HTTP kuntratt: vjolazzjonijiet wiċċ bħala `503` ma `error.code = "GUARDRAIL_VIOLATION"`
 
-Għall-awtur ta' sett ta' regoli u rfinar ta' limitu, ara [`docs/security/GUARDRAILS.md`](../security/GUARDRAILS.md).
+Għal awtorjar ta' sett ta' regoli u rfinar ta' limitu, ara [`docs/security/GUARDRAILS.md`](../security/GUARDRAILS.md).
 
 ### D. Saff tad-Dominju
 
@@ -411,7 +411,7 @@ L-ispazju tal-isem `src/domain/` jiċċentralizza d-deċiżjonijiet tal-politika
 - Politika ta' riżerva: `src/domain/fallbackPolicy.ts`
 - Politika ta' lockout: `src/domain/lockoutPolicy.ts`
 - Rotot ibbażat fuq tag: `src/domain/tagRouter.ts`
-- Combo resolver: `src/domain/comboResolver.ts` — isolvi l-ismijiet tal-combo, il-prefissi awtomatiċi/\*, u l-miri tal-mudell wildcard għal pjanijiet ta’ eżekuzzjoni konkreti
+- Combo resolver: `src/domain/comboResolver.ts` — issolvi l-ismijiet tal-combo, il-prefissi awtomatiċi/\*, u l-miri tal-mudell wildcard għal pjanijiet ta’ eżekuzzjoni konkreti
 - Connection/model rule joiner: `src/domain/connectionModelRules.ts`
 - Snapshots tad-disponibbiltà tal-mudell: `src/domain/modelAvailability.ts`
 - It-traċċar tal-iskadenza tal-fornitur: `src/domain/providerExpiration.ts`
@@ -428,7 +428,7 @@ Il-pipeline tal-awtorizzazzjoni jikklassifika kull talba li tidħol u japplika l
 - Dħul fil-pipeline: `src/server/authz/pipeline.ts`
 - Klassifikatur tat-talba: `src/server/authz/classify.ts` — jiddistingwi r-rotot ta' kompatibilità pubbliċi minn rotot ta' ġestjoni
 - Inventarju tar-rotta pubblika: `src/shared/constants/publicApiRoutes.ts`
-- Politiki: `src/server/authz/policies/` — predikati komposti (`requireApiKey`, `requireManagement`, `requireFreshAuth`, eċċ.)
+- Policies: `src/server/authz/policies/` — predikati komposti (`requireApiKey`, `requireManagement`, `requireFreshAuth`, eċċ.)
 - Utilitajiet header: `src/server/authz/headers.ts`
 - Assertion helper: `src/server/authz/assertAuth.ts`
 - Kuntest tat-talba: `src/server/authz/context.ts`
@@ -801,98 +801,105 @@ flowchart LR
     Next --> SyncCloud
 ```
 
-## Tqassim tal-Moduli (Kritiku għad-Deċiżjonijiet)
+## Immappjar tal-Modulu (Deċiżjoni Kritika)
 
-### Rotot u Moduli API
+### Rotta u API Moduli
 
-- `src/app/api/v1/*`, `src/app/api/v1beta/*`: APIs għall-kompatibbiltà
-- `src/app/api/v1/providers/[provider]/*`: rotot dedikati għal kull fornitur (chat, embeddings, images)
-- `src/app/api/providers*`: CRUD tal-fornituri, validazzjoni, ttestjar
-- `src/app/api/provider-nodes*`: ġestjoni ta' nodi kompatibbli personalizzati
-- `src/app/api/provider-models`: ġestjoni ta' mudelli personalizzati (CRUD)
-- `src/app/api/models/route.ts`: API tal-katalogu tal-mudelli (alias + mudelli personalizzati)
-- `src/app/api/oauth/*`: flussi OAuth/device-code
-- `src/app/api/keys*`: ħajja tal-API key lokali
-- `src/app/api/models/alias`: ġestjoni tal-alias
-- `src/app/api/combos*`: ġestjoni tal-kombinazzjonijiet għar-riserv
-- `src/app/api/pricing`: prezzijiet għall-kalkolu tal-ispiża
-- `src/app/api/settings/proxy`: konfigurazzjoni proxy (GET/PUT/DELETE)
-- `src/app/api/settings/proxy/test`: test tal-konnettività proxy ġewwa (POST)
-- `src/app/api/usage/*`: APIs tal-użu u logs
-- `src/app/api/sync/*` + `src/app/api/cloud/*`: sinkronizzazzjoni n-nuttira u għajnuna għall-wiċċ tal-cloud
-- `src/app/api/cli-tools/*`: kittieba/sejjers ta' konfigurazzjoni CLI lokali
-- `src/app/api/settings/ip-filter`: allowlist/blocklist tal-IP (GET/PUT)
-- `src/app/api/settings/thinking-budget`: konfigurazzjoni tal-budget tal-token għar-riflessjoni (GET/PUT)
-- `src/app/api/settings/system-prompt`: prompt tas-sistema globali (GET/PUT)
+- `src/app/api/v1/*`, `src/app/api/v1beta/*`: kompatibilità APIs
+- `src/app/api/v1/providers/[provider]/*`: rotot dedikati għal kull fornitur (chat, inkorporazzjonijiet, immaġini)
+- `src/app/api/providers*`: fornitur CRUD, validazzjoni, ittestjar
+- `src/app/api/provider-nodes*`: ġestjoni ta' nodi kompatibbli apposta
+- `src/app/api/provider-models`: ġestjoni tal-mudell tad-dwana (CRUD)
+- `src/app/api/models/route.ts`: katalgu tal-mudell API (aliases + custom models)
+- `src/app/api/oauth/*`: OAuth/device-code flows
+- `src/app/api/keys*`: ċiklu tal-ħajja taċ-ċavetta API lokali
+- `src/app/api/models/alias`: alias management
+- `src/app/api/combos*`: fallback combo management
+- `src/app/api/pricing`: overrides tal-prezzijiet għall-kalkolu tal-ispiża
+- `src/app/api/settings/proxy`: konfigurazzjoni tal-prokura (GET/PUT/DELETE)
+- `src/app/api/settings/proxy/test`: test tal - konnettività tal - prokura ' l barra (POST)
+- `src/app/api/usage/*`: użu u zkuk APIs
+- `src/app/api/sync/*` + `src/app/api/cloud/*`: sinkronizzazzjoni tas-sħab u helpers li jiffaċċjaw is-sħab
+- `src/app/api/cli-tools/*`: lokali CLI config writers/checkers
+- `src/app/api/settings/ip-filter`: IP allowlist/blocklist (GET/PUT)
+- `src/app/api/settings/thinking-budget`: konfigurazzjoni tal-baġit tat-token tal-ħsieb (GET/PUT)
+- `src/app/api/settings/system-prompt`: sistema globali fil-pront (GET/PUT)
 - `src/app/api/settings/compression`: settings globali tal-kompressjoni (GET/PUT)
 - `src/app/api/compression/*`: preview tal-kompressjoni, metadata tar-regoli, u pakketti tal-lingwa
-- `src/app/api/context/caveman/config`: alias għal-settings Caveman (GET/PUT)
-- `src/app/api/context/rtk/*`: konfigurazzjoni RTK, katalogu tal-filtri, endpoint tat-test, u rkupru tal-output express
-- `src/app/api/context/combos*`: CRUD tal-kombinazzjonijiet tal-kompressjoni u tal-qrara tal-kombinazzjonijiet tar-rotot
-- `src/app/api/context/analytics`: alias tal-analiżi tal-kompressjoni
-- `src/app/api/sessions`: lista ta' sessjonijiet attivi (GET)
-- `src/app/api/rate-limits`: statut tal-limitu tal-veloċità għal kull kont (GET)
-- `src/app/api/sync/tokens`: CRUD ta' token għas-sinkronizzazzjoni (GET/POST)
-- `src/app/api/sync/tokens/[id]`: get/delete ta' token għas-sinkronizzazzjoni (GET/DELETE)
-- `src/app/api/sync/bundle`: tniżżil tal-pakkett ta' konfigurazzjoni (GET, tivjarja ETag)
-- `src/app/api/v1/ws`: handlier ta' titjib WebSocket għal klijenti WS kompatibbli mal-OpenAI
+- `src/app/api/context/caveman/config`: Caveman settings alias (GET/PUT)
+- `src/app/api/context/rtk/*`: konfigurazzjoni RTK, katalogu tal-filtru, punt ta' tmiem tat-test, u rkupru tal-output mhux maħdum
+- `src/app/api/context/combos*`: kompressjoni ta' kompressjoni CRUD u assenjazzjonijiet ta' routing-combo
+- `src/app/api/context/analytics`: compression analytics alias
+- `src/app/api/sessions`: lista ta' sessjoni attiva (GET)
+- `src/app/api/rate-limits`: status ta' limitu tar-rata għal kull kont (GET)
+- `src/app/api/sync/tokens`: token tas-sinkronizzazzjoni CRUD (GET/POST)
+- `src/app/api/sync/tokens/[id]`: token tas-sinkronizzazzjoni get/delete (GET/DELETE)
+- `src/app/api/sync/bundle`: tniżżil tal-pakkett tal-konfigurazzjoni (GET, ETag versioning)
+- `src/app/api/v1/ws`: WebSocket upgrade handler għal klijenti WS kompatibbli ma' OpenAI
 
-### Qalb tar-Rotot u l-Eżekuzzjoni
+### Rotot u Eżekuzzjoni Core
 
-- `src/sse/handlers/chat.ts`: parsjar tal-ħtiġijiet, ġestjoni tal-kombinazzjoni, ċiklu tal-għażla tal-kont
-- `open-sse/handlers/chatCore.ts`: traduzzjoni, spedizzjoni tal-eżekuttur, ġestjoni tal-ġdid/tneħħija, twaqqif tat-stream
+- `src/sse/handlers/chat.ts`: talba parse, immaniġġjar combo, loop tal-għażla tal-kont
+- `open-sse/handlers/chatCore.ts`: traduzzjoni, eżekutur dispaċċ, retry/refresh handling, stream setup
+- `open-sse/executors/*`: netwerk speċifiku għall-fornitur u mġiba tal-format
 
-### Reġistru tal-Traduzzjoni u Konvertituri tal-Format
+### Reġistru tat-Traduzzjoni u Konvertituri tal-Format
 
-- `open-sse/translator/index.ts`: reġistru u orkestrazzjoni tal-jsarrif
-- Tradutturi tal-ħtiġijiet: `open-sse/translator/request/*` (9 moduli — `antigravity-to-openai`, `claude-to-gemini`, `claude-to-openai`, `gemini-to-openai`, `openai-responses`, `openai-to-claude`, `openai-to-cursor`, `openai-to-gemini`, `openai-to-kiro`)
-- Tradutturi tal-wasla: `open-sse/translator/response/*` (11 moduli — `claude-to-openai`, `cursor-to-openai`, `gemini-to-claude`, `gemini-to-openai`, `kiro-to-openai`, `openai-responses`, `openai-to-antigravity`, `openai-to-claude`, `openai-to-gemini`, `openai-to-gemini-sse`, `responsesToolItem`)
-- Għajnuna: `open-sse/translator/helpers/*` (12 moduli — `claudeHelper`, `geminiHelper`, `geminiToolsSanitizer`, `jsonUtil`, `markdownBoundary`, `maxTokensHelper`, `openaiHelper`, `responsesApiHelper`, `schemaCoercion`, `strictSystemHoist`, `toolCallHelper`, `toolCallShim`)
-- Konstanti tal-format: `open-sse/translator/formats.ts`
+- `open-sse/translator/index.ts`: reġistru tat-tradutturi u orkestrazzjoni
+- Itlob tradutturi: `open-sse/translator/request/*` (9 moduli — `antigravity-to-openai`, `claude-to-gemini`, `claude-to-openai`, `gemini-to-openai`, `openai-responses`, `openai-to-claude`, `openai-to-cursor`, `openai-to-gemini`, `openai-to-kiro`)
+- Tradutturi tar-rispons: `open-sse/translator/response/*` (11-il modulu — `claude-to-openai`, `cursor-to-openai`, `gemini-to-claude`, `gemini-to-openai`, `kiro-to-openai`, `openai-responses`, `openai-to-antigravity`, `openai-to-claude`, `openai-to-gemini`, `openai-to-gemini-sse`, `responsesToolItem`)
+- Helpers: `open-sse/translator/helpers/*` (12-il modulu — `claudeHelper`, `geminiHelper`, `geminiToolsSanitizer`, `jsonUtil`, `markdownBoundary`, `maxTokensHelper`, `openaiHelper`, `responsesApiHelper`, `schemaCoercion`, `strictSystemHoist`, `toolCallHelper`, `toolCallShim`)
+- Format constants: `open-sse/translator/formats.ts`
 - Bootstrap u reġistru: `open-sse/translator/bootstrap.ts`, `open-sse/translator/registry.ts`
-- Għajnuna tal-format tal-istampi: `open-sse/translator/image/`
+- Helpers tal-format tal-immaġini: `open-sse/translator/image/`
 
-### Perżistenza
+### Persistenza
 
-- `src/lib/db/*`: perżistenza tal-konfigurazzjoni/l-istat u tal-qasam fuq SQLite
-- `src/lib/db/*`: importa moduli speċifiċi direttament — ebda barrel (il-qatgħa tal-esportazzjoni mill-ġdid `localDb.ts` kienet tneħħiet)
-- `src/lib/usageDb.js`: fatiċa tal-istorja tal-użu/logs tal-sejħa fuq tabelli SQLite
+- `src/lib/db/*`: config/state persistenti u persistenza tad-dominju fuq SQLite
+- `src/lib/db/*`: jimporta moduli speċifiċi direttament — l-ebda barmil (is-saff ta 'riesportazzjoni `localDb.ts` -antik tneħħa)
+- `src/lib/usageDb.ts`: użu history/call zkuk faċċata fuq tabelli SQLite
 
-## Kopertura tal-Ezekutturi tal-Provider (Patern tal-Strateġija")
+## Kopertura tal-Eżekutur tal-Fornitur (Mudell ta' Strateġija)
 
-Kull provider għandu ekzekutarju speċjalizzat li jestendi `BaseExecutor` (f'`open-sse/executors/base.ts`), li jipprovdi tħejjija tal-URL, kostruzzjoni ta' testi, retri bil-għabba esponenzjali, ganci ta' aġġornament tal-kredenzjali, u l-metodu tal-orchestration `execute()`.
+Kull fornitur għandu eżekutur speċjalizzat li jestendi `BaseExecutor` ( `open-sse/executors/base.ts`), li jipprovdi bini URL, kostruzzjoni ta 'header, ipprova mill-ġdid b'backoff esponenzjali, ganċijiet ta' aġġornament tal-kredenzjali, u l-metodu ta 'orkestrazzjoni `execute()`.
 
-| Ezekutarju                | Provider(i)                                                                                                                                                 | Trattament Speċjali                                                                         |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `DefaultExecutor`         | OpenAI, Claude, Gemini, Qwen, OpenRouter, GLM, Kimi, MiniMax, DeepSeek, Groq, xAI, Mistral, Perplexity, Together, Fireworks, Cerebras, Cohere, NVIDIA, eċċ. | Config dinamika tal-URL/testi għal kull provider                                            |
-| `AntigravityExecutor`     | Google Antigravity                                                                                                                                          | IDs tal-proġett/sessjoni personalizzati, analiżi Retry-After, obsikuzzjoni 429              |
-| `AzureOpenAIExecutor`     | Azure OpenAI                                                                                                                                                | Itir bbażat fuq id-deplojament, infurzar tal-query api-version                              |
-| `BlackboxWebExecutor`     | Blackbox AI (modalità web)                                                                                                                                  | _sessjoni web reversa b'emulazzjoni tal-impronta TLS                                        |
-| `ClaudeIdentityExecutor`  | Claude.ai (mogħdija CCH)                                                                                                                                    | Pipelines ta' restrizzjoni + remap tal-għodda, tfigħ tas-sistema                            |
-| `CliProxyApiExecutor`     | Providers kompatibbli mal-CLIProxyAPI                                                                                                                       | Awtentikazzjoni u ttrattament tal-protokoll personalizzati                                  |
-| `CloudflareAiExecutor`    | Cloudflare Workers AI                                                                                                                                       | Injezzjoni tal-ID tal-Kont, traċċar tal-użu bbażat fuq in-Neurons                           |
-| `CodexExecutor`           | OpenAI Codex                                                                                                                                                | Injezzjoni ta' struzzjonijiet tas-sistema, imponi spejż tar-rażjoni                         |
-| `ChatGptWebCodexExecutor` | ChatGPT Web (Codex)                                                                                                                                         | Pont tal-Responses API tal-sessjoni tal-browser b'inkustering tat-thread/turn               |
-| `CommandCodeExecutor`     | Command Code                                                                                                                                                | OAuth + rotazzjoni tal-testi għal kull sessjoni                                             |
-| `CursorExecutor`          | Cursor IDE                                                                                                                                                  | Protokoll ConnectRPC, kodiċifikazzjoni Protobuf, ittestjar tal-rikjent permezz ta' checksum |
-| `DevinCliExecutor`        | Devin CLI                                                                                                                                                   | Pont tal-ċiklu tal-ħajja tal-kompiti Devin permezz tal-modulu tal-agent tal-cloud           |
-| `GithubExecutor`          | GitHub Copilot                                                                                                                                              | Aġġornament tal-token tal-Copilot, testi li jimmitjaw lil VSCode                            |
-| `GitlabExecutor`          | GitLab Duo                                                                                                                                                  | OAuth tal-GitLab + itir skont il-proġett                                                    |
-| `GlmExecutor`             | Z.AI GLM (inkluż il-preset `glmt`)                                                                                                                          | Konsapevoli tal-bġit ta' ħsieb, costanti tal-preset GLMT                                    |
-| `GrokWebExecutor`         | xAI Grok web                                                                                                                                                | Sessjoni web reversa, għażla tal-modalità (ħsieb/standard)                                  |
-| `KieExecutor`             | KIE                                                                                                                                                         | Ediċjoni ta' token personalizzata b'ankri tal-sessjoni li jinbidlu                          |
-| `KiroExecutor`            | AWS CodeWhisperer/Kiro                                                                                                                                      | Format binarju tal-EventStream tal-AWS → konverżjoni SSE                                    |
-| `MuseSparkWebExecutor`    | Muse Spark (web)                                                                                                                                            | Sessjoni web reversa b'pont tal-messaġġi tal-istampa                                        |
-| `NlpCloudExecutor`        | NLP Cloud                                                                                                                                                   | Għamla tal-ġisem tal-rikjent speċifika għall-provider                                       |
-| `OpenCodeExecutor`        | OpenCode                                                                                                                                                    | Tħejjija tal-provider kompatibbli mal-AI SDK                                                |
-| `PerplexityWebExecutor`   | Perplexity web                                                                                                                                              | Sessjoni web reversa għal tkomplija tal-chat                                                |
-| `PetalsExecutor`          | Inferenza distribwita tal-Petals                                                                                                                            | Itir ta' swarming deċentralizzat                                                            |
-| `PollinationsExecutor`    | Pollinations AI                                                                                                                                             | M'hux meħtieġ API key, rikjesti b'limitu ta' rata                                           |
-| `QoderExecutor`           | Qoder AI                                                                                                                                                    | Appoġġ għal PAT u OAuth, free tier b'mudelli multipli                                       |
-| `VertexExecutor`          | Google Vertex AI                                                                                                                                            | Awtentikazzjoni ta' servizz,端点 ibbażati ir-reġjun                                         |
-| `DevinDesktopExecutor`    | Devin Desktop                                                                                                                                               | API key importata + chat streaming Connect-protobuf                                         |
+| Eżekutur                  | Fornitur(i)                                                                                                                                            | Immaniġġjar Speċjali                                                                   |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| `DefaultExecutor`         | OpenAI, Claude, Gemini, Qwen, OpenRouter, GLM, Kimi, MiniMax, DeepSeek, Groq, xAI, Mistral, Perplexity, Together, Fireworks, Cerebras, Cohere,, NVIDIA | Dynamic URL/header config għal kull fornitur                                           |
+| `AntigravityExecutor`     | Google Antigravity                                                                                                                                     | Custom project/session IDs, Retry-After parsing, 429 offuskazzjoni                     |
+| `AzureOpenAIExecutor`     | Azure OpenAI                                                                                                                                           | Rotot ibbażat fuq l-iskjerament, infurzar tal-mistoqsijiet tal-verżjoni api            |
+| `BlackboxWebExecutor`     | Blackbox AI (web-mode)                                                                                                                                 | Reverse tas-sessjoni tal-web b'emulazzjoni tal-marki tas-swaba ' TLS                   |
+| `ClaudeIdentityExecutor`  | Claude.ai (CCH path)                                                                                                                                   | Constraint + tool-remap pipelines, iffurmar tal-marki tas-swaba                        |
+| `CliProxyApiExecutor`     | Fornituri kompatibbli mal-CLIProxyAPI                                                                                                                  | Immaniġġjar ta' awtorizzazzjoni u protokoll apposta                                    |
+| `CloudflareAiExecutor`    | Cloudflare Ħaddiema AI                                                                                                                                 | Kont ID injezzjoni, Traċċar tal-użu ibbażat fuq in-newroni                             |
+| `CodexExecutor`           | OpenAI Codex                                                                                                                                           | Injetta struzzjonijiet tas-sistema, iġiegħel l-isforz tar-raġunament                   |
+| `ChatGptWebCodexExecutor` | ChatGPT Web (Codex)                                                                                                                                    | Browser-Session Responses API bridge bi thread/turn pinning                            |
+| `CommandCodeExecutor`     | Kodiċi tal-Kmand                                                                                                                                       | OAuth + rotazzjoni header għal kull sessjoni                                           |
+| `CursorExecutor`          | Cursor IDE                                                                                                                                             | protokoll ConnectRPC, kodifikazzjoni Protobuf, iffirmar tat-talba permezz ta 'checksum |
+| `DevinCliExecutor`        | Devin CLI                                                                                                                                              | Devin kompitu li jgħaqqad iċ-ċiklu tal-ħajja permezz tal-modulu tal-aġent tal-cloud    |
+| `GithubExecutor`          | GitHub Copilot                                                                                                                                         | Copilot token refresh, headers li jimitaw il-VSCode                                    |
+| `GitlabExecutor`          | GitLab Duo                                                                                                                                             | GitLab OAuth + rotot ambitu tal-proġett                                                |
+| `GlmExecutor`             | Z.AI GLM (inkl. `glmt` preset)                                                                                                                         | Thinking-budget konxju, GLMT kostanti preset                                           |
+| `GrokWebExecutor`         | xAI Grok web                                                                                                                                           | Reverse tas-sessjoni tal-web, għażla tal-mod (think/standard)                          |
+| `KieExecutor`             | KIE                                                                                                                                                    | Ħruġ ta 'tokens personalizzati b'ankri tas-sessjoni li jduru                           |
+| `KiroExecutor`            | AWS CodeWhisperer/Kiro                                                                                                                                 | AWS EventStream format binarju → SSE konverżjoni                                       |
+| `MuseSparkWebExecutor`    | Muse Spark (web)                                                                                                                                       | Reverse ta' sessjoni tal-web b'pont ta' immaġni-messaġġ                                |
+| `NlpCloudExecutor`        | NLP Cloud                                                                                                                                              | Forma tal-ġisem talba speċifika għall-fornitur                                         |
+| `OpenCodeExecutor`        | OpenCode                                                                                                                                               | Setup tal-fornitur kompatibbli AI SDK                                                  |
+| `PerplexityWebExecutor`   | Web perplessità                                                                                                                                        | Reverse tas-sessjoni tal-web għall-kontinwazzjoni taċ-chat                             |
+| `PetalsExecutor`          | Petali mqassma inferenza                                                                                                                               | Rotot ta' swarm deċentralizzat                                                         |
+| `PollinationsExecutor`    | Pollinazzjonijiet AI                                                                                                                                   | Ebda ċavetta API meħtieġa, talbiet b'rata limitata                                     |
+| `QoderExecutor`           | Qoder AI                                                                                                                                               | appoġġ PAT u OAuth, saff b'ħafna mudell                                                |
+| `VertexExecutor`          | Google Vertex AI                                                                                                                                       | Awtentikazzjoni tal-kont tas-servizz, endpoints ibbażati fuq ir-reġjun                 |
+| `DevinDesktopExecutor`    | Devin Desktop                                                                                                                                          | Ċavetta API importata + Connect-protobuf chat streaming                                |
 
-Il-bqija tal-provajers (inklużi n-nodi kompatibbli personalizzati) jużaw l-`DefaultExecutor`.
+Il-fornituri l-oħra kollha (inklużi nodi kompatibbli tad-dwana) jużaw iż- `DefaultExecutor`.
+
+### Sondi awtomatizzati u kontijiet tal-web-sessjoni
+
+Testijiet tal-mudell, Test Kollha, testijiet kombo u valutazzjonijiet jibagħtu talbiet reali ta 'chat. Fornitur ta' sessjoni fuq il-web jaġixxi bħala l-utent li jkun iffirma, għalhekk kull waħda minn dawk it-talbiet tiġi ssejvjata bħala konverżazzjoni f'dak il-kont; sondi awtomatizzati li ħallew tali konversazzjonijiet kisbu kont sospiż (#14780). Il-pipeline taċ-chat għalhekk jirrifjuta kull mira li tilħaq sonda awtomatizzata li l-fornitur tagħha jieħu kredenzjali tas-sessjoni tal-web, ladarba l-fornitur tal-mira jiġi solvut u qabel ma tintgħażel kredenzjali (`src/lib/providers/chatProbePolicy.ts`). Ir-rifjut huwa `422` ma `error.code` `chat_probe_not_isolated`, u s-sonda runners jirrappurtawh bħala skip, mhux falliment.
+
+Eżekutur li jmexxi kull chat fil-modalità bla storja tal-fornitur stess jiddikjaraha `ChatProbeIsolatingExecutor` (`open-sse/executors/chatProbeIsolation.ts`); sondi lil dak il-fornitur huma mbagħad permessi. ChatGPT Web jiddikjara `temporary-chat`. Pin dikjarazzjoni mal-mekkaniżmu tagħha b'test, sabiex it-talba ma tkunx tista 'tgħix aktar mill-kodiċi li jagħmilha vera.
 
 ## Kompatibilità tal-Fornitur
 
@@ -960,9 +967,9 @@ Il-bqija tal-provajers (inklużi n-nodi kompatibbli personalizzati) jużaw l-`De
 | OpenCode (Go/Zen)   | openai           | OAuth                     | ✅               | ✅         | ✅                    | ❌                         |
 | CLIProxyAPI         | openai           | Personalizzat             | ✅               | ✅         | ❌                    | ❌                         |
 
-## Int Coverage tal-Formati
+## Format Traduzzjoni Kopertura
 
-Il-formati li ġew skoperti jinkludu:
+Il-formati tas-sors misjuba jinkludu:
 
 - `openai`
 - `openai-responses`
@@ -977,20 +984,20 @@ Il-formati fil-mira jinkludu:
 - Kiro
 - Cursor
 
-It-tarjonizzjonijiet jużaw **OpenAI bħala l-format ċentrali** — il-konverżjonijiet kollha għadd minn OpenAI bħala intermedjarju:
+Traduzzjonijiet użu**OpenAI bħala l-format tal-hub** — il-konverżjonijiet kollha jgħaddu minn OpenAI bħala intermedju:
 
 ```
-Format ta' Sors → OpenAI (ċentrali) → Fil-Mira
+Source Format → OpenAI (hub) → Target Format
 ```
 
-It-tarjonizzjonijiet jintgħażlu dinamikament skont is-siġra tal-pakkett tas-sors u l-format fil-mira tal-fornitur.
+It-traduzzjonijiet jintgħażlu b'mod dinamiku abbażi tal-forma tat-tagħbija tas-sors u l-format tal-mira tal-fornitur.
 
-Oqsma ta' proċessar addizzjonali fil-pipeline tat-tarjonizzjoni:
+Saffi tal-ipproċessar addizzjonali fil-pipeline tat-traduzzjoni:
 
-- **Sanitizzazzjoni tar-rispons** — Neħħi l-oqsma li mhumiex standard minn risponsi f'format OpenAI (tatti u mhux tatti) biex jiżgura konformità stretta mal-SDK
-- **Normalizzazzjoni tar-rwol** — Jinkonverti `developer` → `system` għal miri mhux OpenAI; jgħaqqad `system` → `user` għal mudelli li jimlew ir-rwol tas-sistema (GLM, ERNIE)
-- **Sfasar tat-tikketta ta' ħsieb** — Jiġbor blokki `...</think>` mill-kontenut fil-qasam `reasoning_content`
-- **Rabta strutturata** — Jinkonverti `response_format.json_schema` ta' OpenAI f'responseMimeType' + `responseSchema' ta' Gemini
+- **Sanitizzazzjoni tar-rispons** — Istrixxi oqsma mhux standard minn tweġibiet bil-format OpenAI (kemm streaming kif ukoll mhux streaming) biex tiżgura konformità stretta SDK
+- **Normalizzazzjoni tar-rwoli** — Tikkonverti `developer` → `system` għal miri mhux OpenAI; jgħaqqad `system` → `user` għal mudelli li jirrifjutaw ir-rwol tas-sistema (GLM, ERNIE)
+- **Aħseb l-estrazzjoni tat-tikketta** — Teżamina l-blokki `<think>...</think>` mill-kontenut fil-qasam `reasoning_content`
+- **Produzzjoni strutturata** — Jikkonverti OpenAI `response_format.json_schema` għal Gemini `responseMimeType` + `responseSchema`
 
 ## Eponti Appoġġjati
 
@@ -1055,11 +1062,11 @@ Il-fajl tal-qadim tal-tniġġis tal-ħruġ (`open-sse/utils/requestLogger.ts`) j
 - tkaxkir ta' skema SQLite u ganci ta' titjieb awtomatiku meta jibda
 - kompatibilità tat-tħarrix tal-ħruż antik JSON → SQLite
 
-## 6) Gwardija ta' Ħruġ tal-URL / SSRF
+## 6) SSRF / Outbound URL Guard
 
-- `src/shared/network/outboundUrlGuard.ts` iwaqqaf kollha URLs tal-mira privati/link-local/qabel ma jaslu għall-eżekuturi tal-fornitur
-- l-iskoprija u validazzjoni tar-rotot tal-mudell tal-fornitur juża `src/shared/network/safeOutboundFetch.ts` li japplika l-gwardija qabel kull talba ta' barra
-- l-erba' tal-gwardija jitwasslu bħala `URL_GUARD_BLOCKED` b'HTTP 422 u jitniġġesu fil-vettra tal-audit tal-konformità permezz ta' `providerAudit.ts`
+- `BaseExecutor.assertOutboundUrlAllowed` (`open-sse/executors/base.ts`) japplika `src/shared/network/outboundUrlGuard.ts` għal talbiet ta' chat mibgħuta permezz `BaseExecutor.execute()`. Fil-modalità pubblika biss (`OMNIROUTE_ALLOW_LOCAL_PROVIDER_URLS=false` bil-bandiera privata mitfija) timblokka hosts privati u loopback u 169.254.0.0/16; f'kull mod ieħor jimblokka l-hosts tal-metadata tas-sħab. Jiċċekkja l-hostname jew IP letterali kif miktub, qabel kwalunkwe tfittxija DNS. Fornituri lokali integrati jaqbżuh.
+- Ir-rotot ta' skoperta u validazzjoni tal-mudell tal-fornitur jużaw `src/shared/network/safeOutboundFetch.ts` li japplika l-gwardja qabel kull talba 'l barra
+- Żbalji tal-gwardja jiffaċċjaw bħala `URL_GUARD_BLOCKED` HTTP 503 (`getSafeOutboundFetchErrorStatus`; ir-rotta ta' skoperta tal-mudell tirritorna 400), u blokki SSRF ġenwini waqt il-validazzjoni huma illoggjati fil-verifika tal-verifika bħala avvenimenti `provider.validation.ssrf_blocked`
 
 ## Osservabilità u Sinjali Operazzjonali
 
@@ -1088,19 +1095,19 @@ Id-dettalji tal-pajp tal-talba jaħżnu sa erba' stadji JSON tal-pajp għal kull
 - Is-sigriet tal-fornituri (API keys/tokens) huma permanenti fil-DB lokali u għandhom jingħataw protezzjoni fil-livell tal-fajls
 - L-endpoints tal-sync tal-cloud jiddependu fuq l-auth tal-API key + is-semantika tal-id tal-magna
 
-## L-Matriċi tal-Ambjent u l-Ambjent tax-Xogħol
+## Ambjent u Runtime Matrix
 
-Variabli tal-ambjent użati b'mod attiv mill-kodice:
+Varjabbli ambjentali użati b'mod attiv mill-kodiċi:
 
-- App/auth: `JWT_SECRET`, `_INITIAL_PASSWORD`
-- Storage: `DATA_DIR`
-- Override tal-bażi tal-storage fakultattiv (Linux/metaS meta `DATA_DIR` mhux issettjat): `XDG_CONFIG_HOME`
-- Tħaris tas-sigurtà: `API_KEY_SECRET`, `MACHINE_ID_SALT`
+- App/auth: `JWT_SECRET`, `INITIAL_PASSWORD`
+- Ħażna: `DATA_DIR`
+- L-override tal-bażi tal-ħażna fakultattiva (Linux/macOS meta `DATA_DIR` jitwaqqaf): `XDG_CONFIG_HOME`
+- Hashing tas-sigurtà: `API_KEY_SECRET`, `MACHINE_ID_SALT`
 - Logging: `APP_LOG_TO_FILE`, `APP_LOG_RETENTION_DAYS`, `CALL_LOG_RETENTION_DAYS`
 - Sync/cloud URLing: `NEXT_PUBLIC_BASE_URL`, `NEXT_PUBLIC_CLOUD_URL`
-- Proxy estern: `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, `NO_PROXY` u varianti b'ittra baxxa
-- Flags tal-karatteristika SOCKS5: `ENABLE_SOCKS5_PROXY`, `NEXT_PUBLIC_ENABLE_SOCKS5_PROXY`
-- Għajnuna tal-pjattaforma/ambjent tax-xogħol (mhux config speċifika tal-app): `APPDATA`, `NODE_ENV`, `PORT`, `HOSTNAME`
+- Prokura 'l barra: `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, `NO_PROXY` u varjanti żgħar
+- SOCKS5 karatteristika bnadar: `ENABLE_SOCKS5_PROXY`, `NEXT_PUBLIC_ENABLE_SOCKS5_PROXY`
+- Platform/runtime helpers (mhux konfigurazzjoni speċifika għall-app): `APPDATA`, `NODE_ENV`, `PORT`, `HOSTNAME`
 
 ## Noti Arkitettoni Magħrufa
 
